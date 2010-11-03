@@ -29,8 +29,17 @@ use strict;
 use JSON::RPC::Server::Daemon;
 use JSON;
 use base qw(JSON::RPC::Server::Daemon);
+use Data::Dumper;
 
 sub retrieve_json_from_get {
-	print STDERR "RETR\n";
 	return encode_json({ version => 1.1, method => "uview" });
+}
+
+sub response {
+	my ($self, $response) = @_;
+	my $t = $response->{_content};
+	$t =~ s{\\}{\\\\}g;
+	$t =~ s{'}{\\'}g;
+	$response->{_content} = q{var json = '} . $t . q{'};
+	$self->{con}->send_response($response);
 }
