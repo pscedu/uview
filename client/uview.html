@@ -8,16 +8,9 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<script type="text/javascript" src="jq.js"></script>
 		<script type="text/javascript" src="jit-yc.js"></script>
+		<script type="text/javascript" src="http://bl1.psc.teragrid.org:24243/UView"></script>
 		<script type="text/javascript">
-			$(document).ready(function() {
-				$.getJSON('http://bl0.psc.teragrid.org:24243/UView?method=uview&jsoncallback=?',
-					function(data) {
-					alert(data)
-						$.each(data, function(i, entry) {
-						alert(data)
-					});
-				});
-			});
+			var obj = jQuery.parseJSON(json)
 		</script>
 	</head>
 	<body>
