@@ -4,10 +4,23 @@
 
 <html lang="en-US" xml:lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title></title>
+		<title>Blacklight UV</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		<script type="text/javascript" src="jq.js"></script>
+		<script type="text/javascript" src="jit-yc.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				$.getJSON('http://bl0.psc.teragrid.org:24243/UView?method=uview&jsoncallback=?',
+					function(data) {
+					alert(data)
+						$.each(data, function(i, entry) {
+						alert(data)
+					});
+				});
+			});
+		</script>
 	</head>
 	<body>
-		
+
 	</body>
 </html>
