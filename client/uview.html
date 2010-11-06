@@ -7,13 +7,77 @@
 		<title>Blacklight UV</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<script type="text/javascript" src="jq.js"></script>
-		<script type="text/javascript" src="jit-yc.js"></script>
-		<script type="text/javascript" src="http://bl1.psc.teragrid.org:24243/UView"></script>
+		<script type="text/javascript" src="raphael-min.js"></script>
 		<script type="text/javascript">
+			var w, h, c, data, sNode
+
+			function displayAttrs(o) {
+							var t = ''
+							for (var i in o)
+											t += i + ': ' + o[i] + '\n'
+							alert(t)
+			}
+
+			function redraw() {
+
+//			history
+
+//			jobs
+
+//			queue
+
+				window.setTimeout('fetchData()', 5 * 60 * 1000)
+			}
+
+			function fetchData() {
+							var newSNode = document.createElement('script')
+							newSNode.type = 'text/javascript'
+							newSNode.src = 'http://localhost:24240/UView'
+							newSNode.onload = redraw
+							document.body.replaceChild(newSNode, sNode)
+							sNode = newSNode
+			}
+
+			function centerXObj(o, len, x) {
+							o.attr({x: x - len/3*o.attr('font-size')/2})
+			}
+
+			window.onload = function() {
+							w = window.innerWidth
+							h = window.innerHeight
+							c = Raphael(0, 0, w, h)
+							var fs = 30
+							var fontAttr = {fill: "#fff", stroke: "#fff", "font": "Candara", "font-size": fs, opacity: 0.9}
+
+							var sy = h/5-fs
+							centerXObj(c.text(0, sy, 'history').attr(fontAttr), 7, w/4)
+							centerXObj(c.text(0, sy, 'jobs').attr(fontAttr), 4, w/2)
+							centerXObj(c.text(0, sy, 'queue').attr(fontAttr), 5, 3*w/4)
+
+							var pad = 40
+							sy += fs
+							var oh = 4*h/5-sy*2
+							var attr = {"'stroke-width": 2, "stroke": '#666'}
+							c.rect(pad, sy, w/3-2*pad, oh).attr(attr)
+							c.rect(w/3+pad, sy, w/3-2*pad, oh).attr(attr)
+							c.rect(2*w/3+pad, sy, w/3-2*pad, oh).attr(attr)
+
+							c.text(5*w/6, sy+oh+2*fs, 'legend').attr(fontAttr).attr({'font-size': 20})
+
+							sNode = document.createElement('script')
+							document.body.appendChild(sNode)
+
+							fetchData()
+			}
 
 		</script>
+		<style type='text/css'>
+			body {
+				background-color: black;
+				color: #eee;
+			}
+		</style>
 	</head>
 	<body>
-
 	</body>
 </html>
