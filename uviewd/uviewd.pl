@@ -38,8 +38,6 @@ sub retrieve_json_from_get {
 sub response {
 	my ($self, $response) = @_;
 	my $t = $response->{_content};
-	$t =~ s{\\}{\\\\}g;
-	$t =~ s{'}{\\'}g;
-	$response->{_content} = q{var json = '} . $t . q{'};
+	$response->{_content} = q{data = } . $t;
 	$self->{con}->send_response($response);
 }
