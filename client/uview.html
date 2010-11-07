@@ -4,12 +4,12 @@
 
 <html lang="en-US" xml:lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
 	<head>
-		<title>Blacklight UV</title>
+		<title>PSC Blacklight UV Monitor</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<script type="text/javascript" src="jq.js"></script>
 		<script type="text/javascript" src="raphael-min.js"></script>
 		<script type="text/javascript">
-			var w, h, c, data, sNode
+			var ww, wh, c, data, sNode
 
 			function displayAttrs(o) {
 							var t = ''
@@ -38,31 +38,40 @@
 							sNode = newSNode
 			}
 
-			function centerXObj(o, len, x) {
-							o.attr({x: x - len/3*o.attr('font-size')/2})
+			function drawGrid(c, name, x, y, w, h, attr) {
+							c.rect(x, y, w, h).attr(attr)
+							var o = document.getElementById(name)
+							o.style.left = x+w/2 - o.clientWidth/2 + 'px'
+							o.style.top = y - o.clientHeight + 'px'
 			}
 
 			window.onload = function() {
-							w = window.innerWidth
-							h = window.innerHeight
-							c = Raphael(0, 0, w, h)
+							ww = window.innerWidth
+							wh = window.innerHeight
+							c = Raphael(0, 0, ww, wh)
 							var fs = 30
-							var fontAttr = {fill: "#fff", stroke: "#fff", "font": "Candara", "font-size": fs, opacity: 0.9}
-
-							var sy = h/5-fs
-							centerXObj(c.text(0, sy, 'history').attr(fontAttr), 7, w/4)
-							centerXObj(c.text(0, sy, 'jobs').attr(fontAttr), 4, w/2)
-							centerXObj(c.text(0, sy, 'queue').attr(fontAttr), 5, 3*w/4)
+							var fontAttr = {
+								fill: "#fff",
+								stroke: "#fff",
+								"font-family": "Candara",
+								"font-size": fs,
+								opacity: 0.9
+							}
 
 							var pad = 40
-							sy += fs
-							var oh = 4*h/5-sy*2
-							var attr = {"'stroke-width": 2, "stroke": '#666'}
-							c.rect(pad, sy, w/3-2*pad, oh).attr(attr)
-							c.rect(w/3+pad, sy, w/3-2*pad, oh).attr(attr)
-							c.rect(2*w/3+pad, sy, w/3-2*pad, oh).attr(attr)
+							var sy = wh/5
+							var oh = 4*wh/5-sy*2
+							var ow = ww/3 - 2*pad
+							var attr = {
+								"'stroke-width": 2,
+								"stroke": '#666'
+							}
 
-							c.text(5*w/6, sy+oh+2*fs, 'legend').attr(fontAttr).attr({'font-size': 20})
+							drawGrid(c, 'history', pad, sy, ow, oh, attr)
+							drawGrid(c, 'jobs', ww/3+pad, sy, ow, oh, attr)
+							drawGrid(c, 'queue', 2*ww/3+pad, sy, ow, oh, attr)
+
+							c.text(5*ww/6, sy+oh+2*fs, 'legend').attr(fontAttr).attr({'font-size': 20})
 
 							sNode = document.createElement('script')
 							document.body.appendChild(sNode)
@@ -75,9 +84,19 @@
 			body {
 				background-color: black;
 				color: #eee;
+				font-family: Candara, sans-serif;
+			}
+			#history, #jobs, #queue {
+				position: absolute;
+				left: 1px;
+				top: 1px;
+				font-size: 2.5em;
 			}
 		</style>
 	</head>
 	<body>
+		<div id='history'>history</div>
+		<div id='jobs'>jobs</div>
+		<div id='queue'>queue</div>
 	</body>
 </html>
