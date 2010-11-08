@@ -67,7 +67,11 @@ threads->create(sub {
 		if ($nstr ne $str) {
 			my $ndata = XMLin($nstr);
 
+			$ndata->{Job} = $ndata->{Data}{Job} if
+			    exists $ndata->{Data};
 			$ndata = {} unless ref $ndata eq "HASH";
+			$ndata->{Job} = [ $ndata->{Job} ] if
+			    ref $ndata->{Job} eq "HASH";
 			$ndata->{Job} = [] unless
 			    ref $ndata->{Job} eq "ARRAY";
 
