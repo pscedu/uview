@@ -8,78 +8,7 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<script type="text/javascript" src="jq.js"></script>
 		<script type="text/javascript" src="raphael-min.js"></script>
-		<script type="text/javascript">
-			var ww, wh, c, data, sNode
-
-			function displayAttrs(o) {
-							var t = ''
-							for (var i in o)
-											t += i + ': ' + o[i] + '\n'
-							alert(t)
-			}
-
-			function redraw() {
-
-//			history
-
-//			jobs
-
-//			queue
-
-				window.setTimeout('fetchData()', 5 * 60 * 1000)
-			}
-
-			function fetchData() {
-							var newSNode = document.createElement('script')
-							newSNode.type = 'text/javascript'
-							newSNode.src = 'http://localhost:24240/UView'
-							newSNode.onload = redraw
-							document.body.replaceChild(newSNode, sNode)
-							sNode = newSNode
-			}
-
-			function drawGrid(c, name, x, y, w, h, attr) {
-							c.rect(x, y, w, h).attr(attr)
-							var o = document.getElementById(name)
-							o.style.left = x+w/2 - o.clientWidth/2 + 'px'
-							o.style.top = y - o.clientHeight + 'px'
-			}
-
-			window.onload = function() {
-							ww = window.innerWidth
-							wh = window.innerHeight
-							c = Raphael(0, 0, ww, wh)
-							var fs = 30
-							var fontAttr = {
-								fill: "#fff",
-								stroke: "#fff",
-								"font-family": "Candara",
-								"font-size": fs,
-								opacity: 0.9
-							}
-
-							var pad = 40
-							var sy = wh/5
-							var oh = 4*wh/5-sy*2
-							var ow = ww/3 - 2*pad
-							var attr = {
-								"'stroke-width": 2,
-								"stroke": '#666'
-							}
-
-							drawGrid(c, 'history', pad, sy, ow, oh, attr)
-							drawGrid(c, 'jobs', ww/3+pad, sy, ow, oh, attr)
-							drawGrid(c, 'queue', 2*ww/3+pad, sy, ow, oh, attr)
-
-							c.text(5*ww/6, sy+oh+2*fs, 'legend').attr(fontAttr).attr({'font-size': 20})
-
-							sNode = document.createElement('script')
-							document.body.appendChild(sNode)
-
-							fetchData()
-			}
-
-		</script>
+		<script type="text/javascript" src="uview.js"></script>
 		<style type='text/css'>
 			body {
 				background-color: black;
@@ -88,15 +17,51 @@
 			}
 			#history, #jobs, #queue {
 				position: absolute;
-				left: 1px;
-				top: 1px;
 				font-size: 2.5em;
+				font-weight: bold;
+			}
+			#title {
+				text-align: center;
+				font-size: 4.4em;
+				font-weight: bold;
+				color: #ddf;
+				text-shadow:
+					-.02em -.02em 1px black,
+					 .02em -.02em 1px black,
+					-.02em  .02em 1px black,
+					 .02em  .02em 1px black,
+
+					-.04em -.04em 6px violet,
+					 .04em -.04em 6px violet,
+					-.04em  .04em 6px violet,
+					 .04em  .04em 6px violet;
+			}
+			#legend {
+				text-align: center;
+				margin-top: 40%;
+				font-weight: bold;
+				font-size: 1.5em;
+			}
+			#nohistory, #nojobs, #noqueue {
+				position: absolute;
+				visibility: hidden;
+				font-weight: bold;
+				font-size: 1.5em;
 			}
 		</style>
 	</head>
 	<body>
+		<div id='title'>blacklight.psc.edu</div>
+
 		<div id='history'>history</div>
+		<div id='nohistory'>No history available</div>
+
 		<div id='jobs'>jobs</div>
+		<div id='nojobs'>No active jobs</div>
+
 		<div id='queue'>queue</div>
+		<div id='noqueue'>No jobs in queue</div>
+
+		<div id='legend'>- legend -</div>
 	</body>
 </html>
