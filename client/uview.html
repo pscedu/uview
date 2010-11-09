@@ -53,8 +53,27 @@
 				position: absolute;
 				background-color: #333;
 				border: 2px solid #ccc;
-				padding: 5px;
+				padding: .4em;
 				z-index: 5;
+				opacity: .9;
+				visibility: hidden;
+				text-shadow: .1em .1em 0 #000;
+				font-size: .9em;
+				-moz-border-radius: 1em;
+				-webkit-border-radius: 1em;
+			}
+			#popup h3 {
+				margin-top: 0;
+				margin-bottom: 0;
+				border-bottom: 1px solid #ccc;
+			}
+			#popup h3 div {
+				float: left;
+				margin: .1em;
+				margin-left: .2em;
+				margin-right: .2em;
+				width: .8em;
+				height: .8em;
 			}
 		</style>
 	</head>
@@ -72,6 +91,7 @@
 
 		<div id='legend'>- legend -</div>
 
-		<div id='popup' onmouseover='window.clearTimeout(popupTimeout)'></div>
+		<div id='popup' onmouseover='window.clearTimeout(popupTimeout); popupTimeout = null'
+			onmouseout="popupTimeout = window.setTimeout('clearPopup()', 100)"></div>
 	</body>
 </html>
