@@ -7,24 +7,64 @@ var s_sysinfo
 var fontSize = 30
 var popJob
 
+var excludeList = [
+	'ctime',
+	'mtime',
+	'etime',
+	'qtime',
+
+	'Color',
+	'Error_Path',
+	'Hold_Types',
+	'Job_Id',
+	'Join_Path',
+	'Keep_Files',
+	'Output_Path',
+	'Rerunable',
+	'Mail_Points',
+	'MemAlloc',
+	'StrokeColor',
+	'User_List',
+	'exec_host',
+	'gobj',
+	'job_state',
+	'server',
+	'session_id',
+	'start_count',
+	'submit_args',
+	'umask',
+]
+
 var gridStrokeWidth = 2
 var popupTimeout
-var animTime = 1000
+var animTime = 700
 
-function strAttrs(o, pre) {
+function strAttrs(o, addpre, excludeList, pre) {
 	var t = ''
 	for (var i in o) {
-		try {
-			t += pre + i + ': ' + o[i] + '\n'
-		} catch (e) {
-			t += pre + i + ': ' + '?'
+		if (excludeList && inArray(i, excludeList))
+			continue
+
+		if (pre)
+			t += pre
+		t += i.replace(/_/, ' ') + ': '
+		if (typeof(o[i]) == 'object')
+			t += '\n' + strAttrs(o[i], addpre,
+			    excludeList, (pre ? pre : '') + addpre)
+		else {
+			try {
+				t += o[i]
+			} catch (e) {
+				t += '?'
+			}
+			t += '\n'
 		}
 	}
 	return (t)
 }
 
 function displayAttrs(o, pre) {
-	var s = strAttrs(o, '')
+	var s = strAttrs(o, '', '  ')
 	if (pre)
 		s = pre + '\n' + s
 	alert(s)
@@ -135,12 +175,19 @@ function getPopupPos(figx, figw, dispw, max, prefBefore) {
 	var res = figx + figw - pad
 	if (res + dispw < max)
 		return (res)
-	res = figx - dispw
+	res = figx - dispw + pad
 	if (res > 0)
 		return (res)
 	if (prefBefore)
 		return (0)
 	return (max - dispw - 15)
+}
+
+function inArray(str, list) {
+	for (var j in list)
+		if (list[j] == str)
+			return (1)
+	return (0)
 }
 
 function jobHover(e, j) {
@@ -151,7 +198,7 @@ function jobHover(e, j) {
 	o.innerHTML = '<h3>' +
 	    '<div style="background-color: '+toHexColor(j.Color)+'; ' +
 	    'border: 2px solid '+toHexColor(j.StrokeColor)+'"></div>' +
-	    j.Job_Id + '</h3>' + strAttrs(j, '').replace(/\n/g, '<br />')
+	    j.Job_Id + '</h3>' + strAttrs(j, '&nbsp;&nbsp;', excludeList).replace(/\n/g, '<br />')
 
 	o.style.left = getPopupPos(j.gobj.attr('x'),
 	    j.gobj.attr('width'), o.clientWidth, winw, 0) + 'px'
@@ -329,11 +376,21 @@ function calcMemAlloc(str) {
 	return (nnodes * 64) /* in GB */
 }
 
-function calcMem(jobs) {
+function massageJobs(jobs) {
 	for (var i in jobs) {
 		var j = jobs[i]
-		if (j.Resource_List && 'nodeset' in j.Resource_List)
-			j.MemAlloc = calcMemAlloc(j.Resource_List.nodeset)
+		if ('Resource_List' in j) {
+			if ('nodeset' in j.Resource_List)
+				j.MemAlloc = calcMemAlloc(j.Resource_List.nodeset)
+			else if ('ncpus' in j.Resource_List)
+				j.MemAlloc = s_sysinfo['mempercpu'] * j.Resource_List.ncpus
+		}
+		if ('start_time' in j)
+			j['Start time'] = new Date(j.start_time * 1000).toString()
+		else if ('etime' in j)
+			j['Eligible time'] = new Date(j.etime * 1000).toString()
+		if ('Job_Owner' in j)
+			j['Job_Owner'] = j['Job_Owner'].replace(/@.*/, '')
 	}
 }
 
@@ -353,9 +410,9 @@ function redraw() {
 		document.getElementById('title').innerHTML = s_sysinfo.hostname
 	}
 
-	calcMem(data.result.history)
-	calcMem(data.result.jobs)
-	calcMem(data.result.queue)
+	massageJobs(data.result.history)
+	massageJobs(data.result.jobs)
+	massageJobs(data.result.queue)
 
 	var syncObj = null
 	// prune history
@@ -417,7 +474,7 @@ window.onload = function() {
 
 	var sy = winh/5
 	var oh = 4*winh/5-sy*2
-	var ow = winw/3 - 2*pad
+	var ow = (winw - pad)/3 - pad
 	var attr = {
 		"stroke-width": gridStrokeWidth,
 		"stroke": '#666'
@@ -425,9 +482,9 @@ window.onload = function() {
 
 	var x = pad
 	gqueue = drawGrid('queue', x, sy, ow, oh, attr)
-	x += ow + 2*pad
+	x += ow + pad
 	gjobs = drawGrid('jobs', x, sy, ow, oh, attr)
-	x += ow + 2*pad
+	x += ow + pad
 	ghistory = drawGrid('history', x, sy, ow, oh, attr)
 
 	scriptNode = document.createElement('script')
