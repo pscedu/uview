@@ -8,12 +8,14 @@ use Storable qw(freeze thaw);
 use JSON;
 use threads;
 use threads::shared;
+use Sys::Hostname;
 
 use constant HISTORY_NJOBS => 8;
 
 our $s_history : shared;
 our $s_jobs : shared;
 our $s_queue : shared;
+our $s_hostname = hostname;
 
 sub uview {
 	my $s = shift;
@@ -24,6 +26,10 @@ sub uview {
 	lock($s_queue);
 
 	return {
+		sysinfo	=> {
+			hostname	=> $s_hostname,
+			mem		=> 16*1024*1024*1024*1024,
+		},
 		history	=> thaw($s_history),
 		jobs	=> thaw($s_jobs),
 		queue	=> thaw($s_queue),
