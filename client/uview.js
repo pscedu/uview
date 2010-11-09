@@ -4,14 +4,18 @@ var winw, winh, canvas, scriptNode, data
 var ghistory, gjobs, gqueue
 var s_history, s_jobs, s_queue
 var s_sysinfo
+var fontSize = 30
 
 var gridStrokeWidth = 2
+var popupTimeout
 
-function displayAttrs(o) {
+function displayAttrs(o, pre) {
 	var t = ''
+	if (pre)
+		t += pre + '\n'
 	for (var i in o)
 		t += i + ': ' + o[i] + '\n'
-		alert(t)
+	alert(t)
 }
 
 function getClip(obj, attr) {
@@ -26,20 +30,28 @@ function jobHover(e, j) {
 	j.gobj.attr({
 		'stroke-width': 6,
 	})
+	var o = document.getElementById('popup')
+	o.style.left = e.pageX + 'px'
+	o.style.top = e.pageY + 'px'
+	o.innerHTML = '<h3>' + j.Job_Id + '</h3>'
+	for (var i in j)
+		o.innerHTML += i + ': ' + j[i] + '<br />'
+	setVis('popup', 1)
 }
 
 function jobUnhover(e, j) {
 	j.gobj.attr({
 		'stroke-width': 3,
 	})
+	setVis('popup', 0)
 }
 
-function setVis(name, njobs) {
+function setVis(name, vis) {
 	var o = document.getElementById(name)
-	if (njobs)
-		o.style.visibility = 'hidden'
-	else
+	if (vis)
 		o.style.visibility = 'visible'
+	else
+		o.style.visibility = 'hidden'
 }
 
 function drawJobs(label, gobj, jobs) {
@@ -55,12 +67,17 @@ function drawJobs(label, gobj, jobs) {
 
 	jw = (gobj.attr('width') - gridStrokeWidth - 2*pad) / jobs.length - 2*pad
 	x = gobj.attr('x') + gridStrokeWidth/2 + pad
-	y = gobj.attr('y') + gobj.attr('height') + gridStrokeWidth
+	gh = gobj.attr('height') - gridStrokeWidth
+	y = gobj.attr('y') + gh + 2*gridStrokeWidth
 	getClip(gobj, jattr)
 	for (var i in jobs) {
 		var j = jobs[i]
 		x += pad
 		jh = 100
+		if (j.MemAlloc)
+			jh = gh * j.MemAlloc / s_sysinfo['mem']
+		if (jh < fontSize)
+			jh = fontSize
 		if (j.gobj) {
 		} else {
 			j.gobj = canvas.rect(x, y - jh, jw, jh, pad);
@@ -73,7 +90,7 @@ function drawJobs(label, gobj, jobs) {
 		}
 		x += jw + pad
 	}
-	setVis('no' + label, jobs.length)
+	setVis('no' + label, jobs.length == 0)
 }
 
 function jobsPersist(savedata, newdata, cb) {
@@ -101,6 +118,33 @@ function moveJob(j) {
 function boreJob(j) {
 }
 
+function calcMemAlloc(str) {
+	var nnodes = 0
+	/* 2-9,11-13:16-79,2000-2063 */
+	var memNodeList = str.split(/:/)
+	if (memNodeList.length == 0)
+		return (0)
+
+	/* 2-9,11-13 */
+	var sets = memNodeList[0].split(/,/)
+	for (var i in sets) {
+		/* 2-9 */
+		var cpn = sets[i].split(/-/)
+		if (cpn.length == 1)
+			cpn[1] = cpn[0]
+		nnodes += cpn[1] - cpn[0] + 1
+	}
+	return (nnodes * 64) /* in GB */
+}
+
+function calcMem(jobs) {
+	for (var i in jobs) {
+		var j = jobs[i]
+		if (j.Resource_List && 'nodeset' in j.Resource_List)
+			j.MemAlloc = calcMemAlloc(j.Resource_List.nodeset)
+	}
+}
+
 function redraw() {
 	if (data == null)
 		data = {
@@ -114,8 +158,12 @@ function redraw() {
 
 	if (s_sysinfo == null && data.result.sysinfo) {
 		s_sysinfo = data.result.sysinfo
-		$('#title').innerHTML = s_sysinfo.hostname
+		document.getElementById('title').innerHTML = s_sysinfo.hostname
 	}
+
+	calcMem(data.result.history)
+	calcMem(data.result.jobs)
+	calcMem(data.result.queue)
 
 	// prune history
 	jobsPersist(s_history, data.result.history, clearJob)
@@ -161,19 +209,19 @@ function drawGrid(name, x, y, w, h, attr) {
 }
 
 window.onload = function() {
-	winw = window.innerWidth
+	var pad = 40
+
+	winw = window.innerWidth - pad
 	winh = window.innerHeight
 	canvas = Raphael(0, 0, winw, winh)
-	var fs = 30
 	var fontAttr = {
 		fill: "#fff",
 		stroke: "#fff",
 		"font-family": "Candara",
-		"font-size": fs,
+		"font-size": fontSize,
 		opacity: 0.9
 	}
 
-	var pad = 40
 	var sy = winh/5
 	var oh = 4*winh/5-sy*2
 	var ow = winw/3 - 2*pad
