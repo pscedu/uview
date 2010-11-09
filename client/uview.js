@@ -4,8 +4,9 @@ var winw, winh, canvas, scriptNode, data
 var ghistory, gjobs, gqueue
 var s_history, s_jobs, s_queue
 var s_sysinfo
-var fontSize = 30
 var popJob
+var refetchTimeout = null
+var drawLabelsTimeout = null
 
 var excludeList = [
 	'ctime',
@@ -19,18 +20,21 @@ var excludeList = [
 	'Job_Id',
 	'Join_Path',
 	'Keep_Files',
-	'Output_Path',
-	'Rerunable',
 	'Mail_Points',
 	'MemAlloc',
+	'Output_Path',
+	'Rerunable',
+	'Resource_List:mem',
 	'StrokeColor',
 	'User_List',
 	'exec_host',
 	'gobj',
+	'gtextobj',
 	'job_state',
 	'server',
 	'session_id',
 	'start_count',
+	'start_time',
 	'submit_args',
 	'umask',
 ]
@@ -39,7 +43,15 @@ var gridStrokeWidth = 2
 var popupTimeout
 var animTime = 700
 
-function strAttrs(o, addpre, excludeList, pre) {
+function computeShowExcl(name, attr) {
+	for (var i in attr) {
+		var r = attr[i].split(/:/)
+		if (r[0] == name)
+			return r[1].split(/,/)
+	}
+}
+
+function strAttrs(o, addpre, excludeList, pre, norecurse) {
 	var t = ''
 	for (var i in o) {
 		if (excludeList && inArray(i, excludeList))
@@ -48,9 +60,10 @@ function strAttrs(o, addpre, excludeList, pre) {
 		if (pre)
 			t += pre
 		t += i.replace(/_/, ' ') + ': '
-		if (typeof(o[i]) == 'object')
+		if (norecurse == null && typeof(o[i]) == 'object')
 			t += '\n' + strAttrs(o[i], addpre,
-			    excludeList, (pre ? pre : '') + addpre)
+			    computeShowExcl(i, excludeList),
+			    (pre ? pre : '') + addpre)
 		else {
 			try {
 				t += o[i]
@@ -64,7 +77,7 @@ function strAttrs(o, addpre, excludeList, pre) {
 }
 
 function displayAttrs(o, pre) {
-	var s = strAttrs(o, '', '  ')
+	var s = strAttrs(o, '', '  ', null, 1)
 	if (pre)
 		s = pre + '\n' + s
 	alert(s)
@@ -172,7 +185,7 @@ function getCol() {
 
 function getPopupPos(figx, figw, dispw, max, prefBefore) {
 	var pad = 6
-	var res = figx + figw - pad
+	var res = figx + figw - pad*2
 	if (res + dispw < max)
 		return (res)
 	res = figx - dispw + pad
@@ -190,7 +203,7 @@ function inArray(str, list) {
 	return (0)
 }
 
-function jobHover(e, j) {
+function jobHover(j) {
 	j.gobj.attr({
 		'stroke-width': 6,
 	})
@@ -227,7 +240,7 @@ function clearPopup() {
 	setVis('popup', 0)
 }
 
-function jobUnhover(e, j) {
+function jobUnhover(j) {
 	popupTimeout = window.setTimeout('clearPopup()', 100)
 }
 
@@ -239,15 +252,9 @@ function setVis(name, vis) {
 		o.style.visibility = 'hidden'
 }
 
-function animWithObj(syncObj, obj, attr, time) {
+function animWithObj(obj, attr, time, cb) {
 	attr.easing = '>'
-//	if (syncObj)
-//		obj.animateWith(syncObj, attr, time)
-//	else {
-		obj.animate(attr, time)
-//		syncObj = obj
-//	}
-//	return (syncObj)
+	obj.animate(attr, animTime, cb)
 }
 
 function toHexColor(rgb) {
@@ -269,7 +276,65 @@ function strokeShade(orgb) {
 	]
 }
 
-function drawJobs(syncObj, label, grid, jobs) {
+function fmtSize(sz) {
+	if (sz >= 1024)
+		return (Math.round(sz/1024*100)/100 + 'TB')
+	return (sz + 'GB')
+}
+
+function getJobLabelFontSize(label, w, h) {
+	var n = Math.round(w/5)
+	if (n < 14)
+		n = 14
+	var fadj = 5
+	if (n > h - fadj)
+		n = h - fadj
+	if (w / label.length < n)
+		n = w/label.length
+	return (n)
+}
+
+function drawSetLabels(jobs) {
+	for (var i in jobs) {
+		var j = jobs[i]
+
+		j.gtextobj = document.createElement('div')
+		j.gtextobj.style.position = 'absolute'
+		j.gtextobj.style.color = '#fff'
+		j.gtextobj.style.fontWeight = 'bold'
+		j.gtextobj.style.textShadow = '0 0 2px black, 0 0 1px black, 0 0 1px black'
+
+		var label = fmtSize(j.MemAlloc)
+		j.gtextobj.innerHTML = label
+		j.gtextobj.style.fontSize = getJobLabelFontSize(label,
+			j.gobj.attr('width'), j.gobj.attr('height')) + 'pt'
+
+		document.body.appendChild(j.gtextobj)
+
+		j.gtextobj.style.left =
+		Math.round(j.gobj.attr('x') +
+			j.gobj.attr('width')/2 -
+			j.gtextobj.clientWidth/2) + 'px'
+		j.gtextobj.style.top =
+		Math.round(j.gobj.attr('y') +
+			j.gobj.attr('height')/2-2 -
+			j.gtextobj.clientHeight/2) + 'px'
+
+		;(function(j) {
+			j.gtextobj.onmouseover = function() { jobHover(j) }
+			j.gtextobj.onmouseout = function() { jobUnhover(j) }
+		})(j)
+	}
+}
+
+function drawLabels() {
+	drawLabelsTimeout = null
+	drawSetLabels(data.result.history)
+	drawSetLabels(data.result.jobs)
+	drawSetLabels(data.result.queue)
+}
+
+function drawJobs(label, grid, jobs) {
 	var jw, jh, x, y
 
 	var pad = 4
@@ -277,6 +342,8 @@ function drawJobs(syncObj, label, grid, jobs) {
 	var gridX = Math.round(grid.attr('x'))
 	var gridY = Math.round(grid.attr('y'))
 	var gridH = Math.round(grid.attr('height')) - gridStrokeWidth
+
+	var minJobHeight = 2*gridH / (s_sysinfo['mem']/1024) / 3
 
 	jw = (grid.attr('width') - gridStrokeWidth -
 	    2*pad) / jobs.length - 2*pad
@@ -288,8 +355,8 @@ function drawJobs(syncObj, label, grid, jobs) {
 		jh = 100
 		if (j.MemAlloc)
 			jh = gridH * j.MemAlloc / s_sysinfo['mem']
-		if (jh < fontSize)
-			jh = fontSize
+		if (jh < minJobHeight)
+			jh = minJobHeight
 
 		if (!('gobj' in j)) {
 			j.Color = getCol()
@@ -301,29 +368,33 @@ function drawJobs(syncObj, label, grid, jobs) {
 				opacity: ".7",
 			}
 			getClip(grid, jattr)
-			j.gobj = canvas.rect(gridX, gridY+gridH, 0, 0, pad);
+			j.gobj = canvas.rect(gridX, gridY+gridH+8, 0, 0, pad);
 			(function(j) {
 				j.gobj.attr(jattr).hover(
-				    function(e) { jobHover(e, j) },
-				    function(e) { jobUnhover(e, j) }
+				    function() { jobHover(j) },
+				    function() { jobUnhover(j) }
 				)
 			})(j)
 		}
 
-		syncObj = animWithObj(syncObj, j.gobj, {
+		if (j.gtextobj)
+			document.body.removeChild(j.gtextobj)
+
+		animWithObj(j.gobj, {
 			x: x,
 			y: y - jh,
 			width: Math.round(jw),
 			height: jh,
-		}, animTime)
+		}, animTime, function() {
+			if (drawLabelsTimeout)
+				window.clearTimeout(drawLabelsTimeout)
+			drawLabelsTimeout =
+			    window.setTimeout('drawLabels()', 100)
+		})
 
 		x += jw + pad
-
-		if (syncObj == null)
-			syncObj = j
 	}
 	setVis('no' + label, jobs.length == 0)
-	return (syncObj)
 }
 
 function refreshJob(jold, jnew) {
@@ -331,7 +402,8 @@ function refreshJob(jold, jnew) {
 		jold[i] = jnew[i]
 }
 
-function jobsPersist(syncObj, savedata, newdata, cb) {
+function jobsPersist(savedata, newdata, notfoundcb) {
+	var nf = []
 	for (var i in savedata) {
 		var found = 0
 		for (var k in newdata) {
@@ -339,19 +411,20 @@ function jobsPersist(syncObj, savedata, newdata, cb) {
 				refreshJob(savedata[i], newdata[k])
 				delete newdata[k]
 				newdata[k] = savedata[i]
-				syncObj = cb(savedata[i], syncObj)
 				found = 1
 				break
 			}
 		}
-		if (!found)
-			cb(savedata[i])
+		if (!found && notfoundcb) {
+			notfoundcb(savedata[i])
+			nf[nf.length] = savedata[i]
+		}
 	}
-	return (syncObj)
+	return (nf)
 }
 
-function clearJob(j, syncObj) {
-	return (animWithObj(syncObj, j.gobj, {
+function clearJob(j) {
+	return (animWithObj(j.gobj, {
 		width: 0,
 		height: 0,
 	}, animTime))
@@ -395,6 +468,12 @@ function massageJobs(jobs) {
 }
 
 function redraw() {
+	drawJobs('queue', gqueue, data.result.queue)
+	drawJobs('jobs', gjobs, data.result.jobs)
+	drawJobs('history', ghistory, data.result.history)
+}
+
+function loadData() {
 	if (data == null)
 		data = {
 			result: {
@@ -414,32 +493,37 @@ function redraw() {
 	massageJobs(data.result.jobs)
 	massageJobs(data.result.queue)
 
-	var syncObj = null
 	// prune history
-	syncObj = jobsPersist(syncObj, s_history, data.result.history, clearJob)
-	// jobs -> history
-	//syncObj = jobsPersist(syncObj, s_jobs, data.result.jobs)
-	// queue -> jobs
-	//syncObj = jobsPersist(syncObj, s_queue, data.result.queue)
-	// newly queued
-	//syncObj = jobsPersist(syncObj, data.result.queue, s_queue, boreJob)
+	jobsPersist(s_history, data.result.history, clearJob)
 
-	syncObj = drawJobs(syncObj, 'queue', gqueue, data.result.queue)
-	syncObj = drawJobs(syncObj, 'jobs', gjobs, data.result.jobs)
-	drawJobs(syncObj, 'history', ghistory, data.result.history)
+	var tj = jobsPersist(s_jobs, data.result.history)
+	jobsPersist(tj, data.result.jobs, clearJob)
+
+	tj = jobsPersist(s_queue, data.result.history)
+	jobsPersist(tj, data.result.jobs)
+	jobsPersist(tj, data.result.queue, clearJob)
 
 	s_history = data.result.history
 	s_jobs = data.result.jobs
 	s_queue = data.result.queue
 
-	window.setTimeout('fetchData()', 5 * 60 * 1000)
+	redraw()
+
+	if (refetchTimeout)
+		window.clearTimeout(refetchTimeout)
+	refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
 }
 
 function fetchData() {
+	if (refetchTimeout) {
+		window.clearTimeout(refetchTimeout)
+		refetchTimeout = null
+	}
+
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
 	newSNode.src = 'http://localhost:24240/UView'
-	newSNode.onload = redraw
+	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
 }
@@ -464,13 +548,6 @@ window.onload = function() {
 	winw = window.innerWidth
 	winh = window.innerHeight
 	canvas = Raphael(0, 0, winw, winh)
-	var fontAttr = {
-		fill: "#fff",
-		stroke: "#fff",
-		"font-family": "Candara",
-		"font-size": fontSize,
-		opacity: 0.9
-	}
 
 	var sy = winh/5
 	var oh = 4*winh/5-sy*2
@@ -487,8 +564,29 @@ window.onload = function() {
 	x += ow + pad
 	ghistory = drawGrid('history', x, sy, ow, oh, attr)
 
+	var o = document.getElementById('legend')
+	o.style.top = sy + oh + pad + 'px'
+	o.style.left = winw/2 - o.clientWidth/2 + 'px'
+
 	scriptNode = document.createElement('script')
 	document.body.appendChild(scriptNode)
+
+	data = {
+		result: {
+			history: [],
+			jobs: [],
+			queue: [],
+			sysinfo: [],
+		}
+	}
+
+	document.onkeypress = function (e) {
+		switch (String.fromCharCode(e.which)) {
+		case ' ':
+			fetchData()
+			break
+		}
+	}
 
 	fetchData()
 }
