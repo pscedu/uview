@@ -39,5 +39,7 @@ sub response {
 	my ($self, $response) = @_;
 	my $t = $response->{_content};
 	$response->{_content} = q{data = } . $t;
+	$response->{_headers}{'content-type'} =~
+	    s{application/json}{text/javascript};
 	$self->{con}->send_response($response);
 }

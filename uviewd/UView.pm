@@ -28,7 +28,7 @@ sub uview {
 	return {
 		sysinfo	=> {
 			hostname	=> $s_hostname,
-			mem		=> 16*1024*1024*1024*1024,
+			mem		=> 16*1024,
 		},
 		history	=> thaw($s_history),
 		jobs	=> thaw($s_jobs),
@@ -58,7 +58,7 @@ sub bsearch {
 sub count_secs {
 	my $tm = shift;
 	my $secs = 0;
-	if ($tm =~ /^(\d+):(\d+):(\d+)$/) {
+	if ($tm && $tm =~ /^(\d+):(\d+):(\d+)$/) {
 		$secs += $1 * 60 * 60;
 		$secs += $2 * 60;
 		$secs += $3;
