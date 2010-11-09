@@ -1,10 +1,11 @@
 /* $Id$ */
 
-
-var ww, wh, c, sNode, data
+var winw, winh, canvas, scriptNode, data
 var ghistory, gjobs, gqueue
-var dhistory, djobs, dqueue
-var thistory, tjobs, tqueue
+var s_history, s_jobs, s_queue
+var s_sysinfo
+
+var gridStrokeWidth = 2
 
 function displayAttrs(o) {
 	var t = ''
@@ -18,20 +19,18 @@ function getClip(obj, attr) {
 	    obj.attr('x') + ', ' +
 	    obj.attr('y') + ', ' +
 	    obj.attr('width') + ', ' +
-	    (obj.attr('height')-1) // XXX stroke-width of grid
+	    (obj.attr('height')- gridStrokeWidth/2)
 }
 
 function jobHover(e, j) {
-	j.attr({
-		'stroke-width': 4,
-		opacity: .7
+	j.gobj.attr({
+		'stroke-width': 6,
 	})
 }
 
 function jobUnhover(e, j) {
-	j.attr({
-		'stroke-width': 6,
-		opacity: .7
+	j.gobj.attr({
+		'stroke-width': 3,
 	})
 }
 
@@ -43,75 +42,97 @@ function setVis(name, njobs) {
 		o.style.visibility = 'visible'
 }
 
-function redraw() {
-	var i, j, pad, jw, jh, x, y
+function drawJobs(label, gobj, jobs) {
+	var jw, jh, x, y
 
-	pad = 4
+	var pad = 4
 	var jattr = {
 		fill: "violet",
 		stroke: "purple",
-		'stroke-width': 4,
-		opacity: ".5",
+		'stroke-width': 3,
+		opacity: ".7",
 	}
 
+	jw = (gobj.attr('width') - gridStrokeWidth - 2*pad) / jobs.length - 2*pad
+	x = gobj.attr('x') + gridStrokeWidth/2 + pad
+	y = gobj.attr('y') + gobj.attr('height') + gridStrokeWidth
+	getClip(gobj, jattr)
+	for (var i in jobs) {
+		var j = jobs[i]
+		x += pad
+		jh = 100
+		if (j.gobj) {
+		} else {
+			j.gobj = canvas.rect(x, y - jh, jw, jh, pad);
+			(function(j) {
+				j.gobj.attr(jattr).hover(
+				    function(e) { jobHover(e, j) },
+				    function(e) { jobUnhover(e, j) }
+				)
+			})(j)
+		}
+		x += jw + pad
+	}
+	setVis('no' + label, jobs.length)
+}
+
+function jobsPersist(savedata, newdata, cb) {
+	for (var i in savedata) {
+		var found = 0
+		for (var k in newdata) {
+			if (savedata[i].Job_Id == newdata[k].Job_Id) {
+				found = 1
+				break
+			}
+		}
+		if (!found)
+			cb(savedata[i])
+	}
+}
+
+function clearJob(j) {
+	//j.gobj.animate()
+	//delete j
+}
+
+function moveJob(j) {
+}
+
+function boreJob(j) {
+}
+
+function redraw() {
 	if (data == null)
 		data = {
 			result: {
 				history: [],
 				jobs: [],
 				queue: [],
+				sysinfo: [],
 			}
 		}
 
-	thistory = data.result.history
-	tjobs = data.result.jobs
-	tqueue = data.result.queue
-
-	/* history */
-	jw = (ghistory.attr('width') - 2*pad) / thistory.length
-	x = ghistory.attr('x') + pad
-	y = ghistory.attr('y') + ghistory.attr('height')
-	getClip(ghistory, jattr)
-	for (i in thistory) {
-		jh = 100
-		c.rect(x+pad, y - jh, jw - 2*pad, jw + pad, pad).attr(jattr)
-		x += jw
+	if (s_sysinfo == null && data.result.sysinfo) {
+		s_sysinfo = data.result.sysinfo
+		$('#title').innerHTML = s_sysinfo.hostname
 	}
-	setVis('nohistory', thistory.length)
 
-	/* jobs */
-	jw = (gjobs.attr('width') - 2*pad) / tjobs.length
-	x = gjobs.attr('x') + pad
-	y = gjobs.attr('y') + gjobs.attr('height')
-	getClip(gjobs, jattr)
-	for (i in tjobs) {
-		jh = 100
-		c.rect(x+pad, y - jh, jw - 2*pad, jh, pad).attr(jattr)
-		x += jw
-	}
-	setVis('nojobs', tjobs.length)
+	// prune history
+	jobsPersist(s_history, data.result.history, clearJob)
+	// jobs -> history
+	jobsPersist(s_jobs, data.result.jobs, moveJob)
+	// queue -> jobs
+	jobsPersist(s_queue, data.result.queue, moveJob)
+	// newly queued
+	jobsPersist(data.result.queue, s_queue, boreJob)
 
-	/* queue */
-	jw = gqueue.attr('width') / tqueue.length - 2*pad
-	x = gqueue.attr('x')
-	y = gqueue.attr('y') + gqueue.attr('height') + 2
-	getClip(gqueue, jattr)
-	for (i in tqueue) {
-		x += pad
-		jh = 100
-		j = c.rect(x, y - jh, jw, jh, pad)
-		j.attr(jattr)
-		j.hover(
-		    function(e) { jobHover(e, j) },
-		    function(e) { jobUnhover(e, j) }
-		)
-		x += jw + pad
-	}
-	setVis('noqueue', tqueue.length)
+	drawJobs('queue', gqueue, data.result.queue)
+	drawJobs('jobs', gjobs, data.result.jobs)
+	drawJobs('history', ghistory, data.result.history)
 
-	dhistory = thistory
-	djobs = tjobs
-	dqueue = tqueue
+	s_history = data.result.history
+	s_jobs = data.result.jobs
+	s_queue = data.result.queue
 
 	window.setTimeout('fetchData()', 5 * 60 * 1000)
 }
@@ -121,12 +142,12 @@ function fetchData() {
 	newSNode.type = 'text/javascript'
 	newSNode.src = 'http://localhost:24240/UView'
 	newSNode.onload = redraw
-	document.body.replaceChild(newSNode, sNode)
-	sNode = newSNode
+	document.body.replaceChild(newSNode, scriptNode)
+	scriptNode = newSNode
 }
 
-function drawGrid(c, name, x, y, w, h, attr) {
-	var obj = c.rect(x, y, w, h).attr(attr)
+function drawGrid(name, x, y, w, h, attr) {
+	var obj = canvas.rect(x, y, w, h).attr(attr)
 
 	var o = document.getElementById(name)
 	o.style.left = Math.round(x+w/2 - o.clientWidth/2) + 'px'
@@ -134,15 +155,15 @@ function drawGrid(c, name, x, y, w, h, attr) {
 
 	var o = document.getElementById('no' + name)
 	o.style.left = Math.round(x+w/2 - o.clientWidth/2) + 'px'
-	o.style.top = Math.round(y+h/2 - o.clientHeight/2) + 'px'
+	o.style.top = Math.round(y+5*h/6 - o.clientHeight/2) + 'px'
 
 	return (obj)
 }
 
 window.onload = function() {
-	ww = window.innerWidth
-	wh = window.innerHeight
-	c = Raphael(0, 0, ww, wh)
+	winw = window.innerWidth
+	winh = window.innerHeight
+	canvas = Raphael(0, 0, winw, winh)
 	var fs = 30
 	var fontAttr = {
 		fill: "#fff",
@@ -153,20 +174,20 @@ window.onload = function() {
 	}
 
 	var pad = 40
-	var sy = wh/5
-	var oh = 4*wh/5-sy*2
-	var ow = ww/3 - 2*pad
+	var sy = winh/5
+	var oh = 4*winh/5-sy*2
+	var ow = winw/3 - 2*pad
 	var attr = {
-		"stroke-width": 2,
+		"stroke-width": gridStrokeWidth,
 		"stroke": '#666'
 	}
 
-	ghistory = drawGrid(c, 'history', pad, sy, ow, oh, attr)
-	gjobs = drawGrid(c, 'jobs', ww/3+pad, sy, ow, oh, attr)
-	gqueue = drawGrid(c, 'queue', 2*ww/3+pad, sy, ow, oh, attr)
+	gqueue = drawGrid('queue', pad, sy, ow, oh, attr)
+	gjobs = drawGrid('jobs', winw/3+pad, sy, ow, oh, attr)
+	ghistory = drawGrid('history', 2*winw/3+pad, sy, ow, oh, attr)
 
-	sNode = document.createElement('script')
-	document.body.appendChild(sNode)
+	scriptNode = document.createElement('script')
+	document.body.appendChild(scriptNode)
 
 	fetchData()
 }
