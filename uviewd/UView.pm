@@ -29,30 +29,12 @@ sub uview {
 		sysinfo	=> {
 			hostname	=> $s_hostname,
 			mem		=> 16*1024,
+			mempercpu	=> 8,
 		},
 		history	=> thaw($s_history),
 		jobs	=> thaw($s_jobs),
 		queue	=> thaw($s_queue),
 	};
-}
-
-sub bsearch {
-	my ($key, $cmp, $a) = @_;
-	my $min = 0;
-	my $max = $#a;
-	my $mid;
-	while ($min <= $max) {
-		$mid = ($max - $min) / 2 + $min;
-		my $i = $a->[$mid];
-		my $val = $cmp->($key, $i);
-		return $i if $val == 0;
-		if ($val > 0) {
-			$max = $mid - 1;
-		} else {
-			$min = $mid + 1;
-		}
-	}
-	return undef;
 }
 
 sub count_secs {
@@ -64,6 +46,16 @@ sub count_secs {
 		$secs += $3;
 	}
 	return $secs;
+}
+
+sub hasjob {
+	my ($jobs, $j) = @_;
+
+	my $i;
+	foreach $i (@$jobs) {
+		return 1 if $i->{Job_Id} eq $j->{Job_Id};
+	}
+	return (0);
 }
 
 threads->create(sub {
@@ -87,11 +79,9 @@ threads->create(sub {
 
 			my ($j);
 			for $j (@jobs) {
-				unless (bsearch($j, sub {
-				    return $_[0]->{Job_Id} cmp
-					   $_[1]->{Job_Id} },
-				    \@newjobs)) {
-					push @history, $j;
+				unless (hasjob(\@newjobs, $j)) {
+					print STDERR "moving job to history: $j->{Job_Id}\n";
+					push @history, $j
 				}
 			}
 
@@ -126,7 +116,7 @@ threads->create(sub {
 			$s_jobs = freeze \@jobs;
 			$s_queue = freeze \@queue;
 		}
-		sleep(5 * 60);
+		sleep(30);
 	}
 });
 
