@@ -7,6 +7,10 @@ var s_sysinfo
 var popJob
 var refetchTimeout = null
 var drawLabelsTimeout = null
+var gridStrokeWidth = 2
+var popupTimeout
+var animTime = 1200
+var inFetching = 0
 
 var excludeList = [
 	'ctime',
@@ -38,10 +42,6 @@ var excludeList = [
 	'submit_args',
 	'umask',
 ]
-
-var gridStrokeWidth = 2
-var popupTimeout
-var animTime = 700
 
 function computeShowExcl(name, attr) {
 	for (var i in attr) {
@@ -253,8 +253,7 @@ function setVis(name, vis) {
 }
 
 function animWithObj(obj, attr, time, cb) {
-	attr.easing = '>'
-	obj.animate(attr, animTime, cb)
+	obj.animate(attr, animTime, '>', cb)
 }
 
 function toHexColor(rgb) {
@@ -332,6 +331,8 @@ function drawLabels() {
 	drawSetLabels(data.result.history)
 	drawSetLabels(data.result.jobs)
 	drawSetLabels(data.result.queue)
+	clearStatus()
+	inFetching = 0
 }
 
 function drawJobs(label, grid, jobs) {
@@ -368,7 +369,8 @@ function drawJobs(label, grid, jobs) {
 				opacity: ".7",
 			}
 			getClip(grid, jattr)
-			j.gobj = canvas.rect(gridX, gridY+gridH+8, 0, 0, pad);
+		//	j.gobj = canvas.rect(gridX, gridY+gridH+8, 0, 0, pad);
+			j.gobj = canvas.rect(gridX, gridY, 0, 0, pad);
 			(function(j) {
 				j.gobj.attr(jattr).hover(
 				    function() { jobHover(j) },
@@ -377,8 +379,10 @@ function drawJobs(label, grid, jobs) {
 			})(j)
 		}
 
-		if (j.gtextobj)
+		if (j.gtextobj) {
 			document.body.removeChild(j.gtextobj)
+			j.gtextobj = null
+		}
 
 		animWithObj(j.gobj, {
 			x: x,
@@ -415,8 +419,9 @@ function jobsPersist(savedata, newdata, notfoundcb) {
 				break
 			}
 		}
-		if (!found && notfoundcb) {
-			notfoundcb(savedata[i])
+		if (!found) {
+			if (notfoundcb)
+				notfoundcb(savedata[i])
 			nf[nf.length] = savedata[i]
 		}
 	}
@@ -424,6 +429,7 @@ function jobsPersist(savedata, newdata, notfoundcb) {
 }
 
 function clearJob(j) {
+	document.body.removeChild(j.gtextobj)
 	return (animWithObj(j.gobj, {
 		width: 0,
 		height: 0,
@@ -467,13 +473,9 @@ function massageJobs(jobs) {
 	}
 }
 
-function redraw() {
-	drawJobs('queue', gqueue, data.result.queue)
-	drawJobs('jobs', gjobs, data.result.jobs)
-	drawJobs('history', ghistory, data.result.history)
-}
-
 function loadData() {
+	setStatus('Drawing...')
+
 	if (data == null)
 		data = {
 			result: {
@@ -500,14 +502,16 @@ function loadData() {
 	jobsPersist(tj, data.result.jobs, clearJob)
 
 	tj = jobsPersist(s_queue, data.result.history)
-	jobsPersist(tj, data.result.jobs)
+	tj = jobsPersist(tj, data.result.jobs)
 	jobsPersist(tj, data.result.queue, clearJob)
 
 	s_history = data.result.history
 	s_jobs = data.result.jobs
 	s_queue = data.result.queue
 
-	redraw()
+	drawJobs('queue', gqueue, data.result.queue)
+	drawJobs('jobs', gjobs, data.result.jobs)
+	drawJobs('history', ghistory, data.result.history)
 
 	if (refetchTimeout)
 		window.clearTimeout(refetchTimeout)
@@ -515,15 +519,26 @@ function loadData() {
 }
 
 function fetchData() {
+	if (inFetching)
+		return
+
 	if (refetchTimeout) {
 		window.clearTimeout(refetchTimeout)
 		refetchTimeout = null
 	}
 
+	inFetching = 1
+
+	setStatus('Loading data...')
+
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
 	newSNode.src = 'http://localhost:24240/UView'
 	newSNode.onload = loadData
+	newSNode.onerror = function() {
+		inFetching = 0
+		setStatus('Data load failed')
+	}
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
 }
@@ -540,6 +555,19 @@ function drawGrid(name, x, y, w, h, attr) {
 	o.style.top = Math.round(y+5*h/6 - o.clientHeight/2) + 'px'
 
 	return (obj)
+}
+
+function setStatus(msg) {
+	var o = document.getElementById('status')
+	o.innerHTML = msg
+	o.style.top = winh - o.clientHeight + 'px'
+	o.style.left = winw/2 - o.clientWidth/2 + 'px'
+	o.style.visibility = 'visible'
+}
+
+function clearStatus(msg) {
+	var o = document.getElementById('status')
+	o.style.visibility = 'hidden'
 }
 
 window.onload = function() {
