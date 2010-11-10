@@ -1,6 +1,6 @@
 /* $Id$ */
 
-var winw, winh, canvas, scriptNode, data
+var winw, winh, canvas, scriptNode, data, old_data
 var ghistory, gjobs, gqueue
 var s_history, s_jobs, s_queue
 var s_sysinfo
@@ -9,8 +9,9 @@ var refetchTimeout = null
 var drawLabelsTimeout = null
 var gridStrokeWidth = 2
 var popupTimeout
-var animTime = 1200
+var animTime = 700
 var inFetching = 0
+var deadJobs = null
 
 var excludeList = [
 	'ctime',
@@ -34,6 +35,7 @@ var excludeList = [
 	'exec_host',
 	'gobj',
 	'gtextobj',
+	'interactive',
 	'job_state',
 	'server',
 	'session_id',
@@ -252,7 +254,7 @@ function setVis(name, vis) {
 		o.style.visibility = 'hidden'
 }
 
-function animWithObj(obj, attr, time, cb) {
+function animObj(obj, attr, time, cb) {
 	obj.animate(attr, animTime, '>', cb)
 }
 
@@ -331,8 +333,17 @@ function drawLabels() {
 	drawSetLabels(data.result.history)
 	drawSetLabels(data.result.jobs)
 	drawSetLabels(data.result.queue)
+
 	clearStatus()
 	inFetching = 0
+
+	if (deadJobs) {
+		for (var j in deadJobs)
+			j.gobj.remove()
+
+		delete deadJobs
+		deadJobs = null
+	}
 }
 
 function drawJobs(label, grid, jobs) {
@@ -384,17 +395,28 @@ function drawJobs(label, grid, jobs) {
 			j.gtextobj = null
 		}
 
-		animWithObj(j.gobj, {
-			x: x,
-			y: y - jh,
-			width: Math.round(jw),
-			height: jh,
-		}, animTime, function() {
+		if (j.gobj.attr('x') == x && j.gobj.attr('y') == y-jh &&
+		    j.gobj.attr('width') == Math.round(jw) &&
+		    j.gobj.attr('height') == jh) {
 			if (drawLabelsTimeout)
 				window.clearTimeout(drawLabelsTimeout)
 			drawLabelsTimeout =
 			    window.setTimeout('drawLabels()', 100)
-		})
+		} else {
+			if (drawLabelsTimeout)
+				window.clearTimeout(drawLabelsTimeout)
+			animObj(j.gobj, {
+				x: x,
+				y: y - jh,
+				width: Math.round(jw),
+				height: jh,
+			}, animTime, function() {
+				if (drawLabelsTimeout)
+					window.clearTimeout(drawLabelsTimeout)
+				drawLabelsTimeout =
+				    window.setTimeout('drawLabels()', 100)
+			})
+		}
 
 		x += jw + pad
 	}
@@ -422,7 +444,7 @@ function jobsPersist(savedata, newdata, notfoundcb) {
 		if (!found) {
 			if (notfoundcb)
 				notfoundcb(savedata[i])
-			nf[nf.length] = savedata[i]
+			nf.push(savedata[i])
 		}
 	}
 	return (nf)
@@ -430,7 +452,7 @@ function jobsPersist(savedata, newdata, notfoundcb) {
 
 function clearJob(j) {
 	document.body.removeChild(j.gtextobj)
-	return (animWithObj(j.gobj, {
+	return (animObj(j.gobj, {
 		width: 0,
 		height: 0,
 	}, animTime))
@@ -474,9 +496,7 @@ function massageJobs(jobs) {
 }
 
 function loadData() {
-	setStatus('Drawing...')
-
-	if (data == null)
+	if (data == null) {
 		data = {
 			result: {
 				history: [],
@@ -485,6 +505,10 @@ function loadData() {
 				sysinfo: [],
 			}
 		}
+		setStatus('Load failed')
+		inFetching = 0
+	} else
+		setStatus('Drawing...')
 
 	if (s_sysinfo == null && data.result.sysinfo) {
 		s_sysinfo = data.result.sysinfo
@@ -496,14 +520,17 @@ function loadData() {
 	massageJobs(data.result.queue)
 
 	// prune history
-	jobsPersist(s_history, data.result.history, clearJob)
+	var tj = jobsPersist(s_history, data.result.history, clearJob)
+	deadJobs = tj
 
-	var tj = jobsPersist(s_jobs, data.result.history)
-	jobsPersist(tj, data.result.jobs, clearJob)
+	tj = jobsPersist(s_jobs, data.result.history)
+	tj = jobsPersist(tj, data.result.jobs, clearJob)
+	deadJobs.concat(tj)
 
 	tj = jobsPersist(s_queue, data.result.history)
 	tj = jobsPersist(tj, data.result.jobs)
-	jobsPersist(tj, data.result.queue, clearJob)
+	tj = jobsPersist(tj, data.result.queue, clearJob)
+	deadJobs.concat(tj)
 
 	s_history = data.result.history
 	s_jobs = data.result.jobs
@@ -531,14 +558,13 @@ function fetchData() {
 
 	setStatus('Loading data...')
 
+	old_data = data
+	data = null
+
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
 	newSNode.src = 'http://localhost:24240/UView'
 	newSNode.onload = loadData
-	newSNode.onerror = function() {
-		inFetching = 0
-		setStatus('Data load failed')
-	}
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
 }
