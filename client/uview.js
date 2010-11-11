@@ -197,7 +197,7 @@ function getCol() {
 }
 
 function getPopupPos(figx, figw, dispw, max, prefBefore) {
-	var res, pad = 6
+	var res, pad = 1
 	if (prefBefore) {
 		res = figx - dispw + pad
 		if (res > 0)
@@ -245,6 +245,7 @@ function jobHover(j) {
 	} else {
 		if (popJob) {
 			window.clearTimeout(popupTimeout)
+			popupTimeout = null
 			clearPopup()
 		}
 		setVis('popup', 1)
@@ -437,8 +438,10 @@ function drawJobs(label, grid, jobs) {
 			drawLabelsTimeout =
 			    window.setTimeout('drawLabels()', 100)
 		} else {
-			if (drawLabelsTimeout)
+			if (drawLabelsTimeout) {
 				window.clearTimeout(drawLabelsTimeout)
+				drawLabelsTimeout = null
+			}
 			animObj(j.gobj, {
 				x: x,
 				y: y - jh,
@@ -529,6 +532,17 @@ function massageJobs(jobs) {
 	}
 }
 
+function drawGridLines(gobj) {
+	var x = gobj.attr('x')+gridStrokeWidth/2
+	var y = gobj.attr('y')
+	var h = gobj.attr('height')
+	var w = gobj.attr('width')-gridStrokeWidth
+	for (var j = 1; j < s_sysinfo['mem']/1024; j++) {
+		var ty = y + j*h*1024/s_sysinfo['mem']
+		canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
+	}
+}
+
 function loadData() {
 	if (data == null) {
 		data = {
@@ -547,6 +561,10 @@ function loadData() {
 	if (s_sysinfo == null && data.result.sysinfo) {
 		s_sysinfo = data.result.sysinfo
 		document.getElementById('title').innerHTML = s_sysinfo.hostname
+
+		drawGridLines(ghistory)
+		drawGridLines(gjobs)
+		drawGridLines(gqueue)
 	}
 
 	massageJobs(data.result.history)
@@ -603,7 +621,13 @@ function fetchData() {
 	scriptNode = newSNode
 }
 
-function drawGrid(name, x, y, w, h, attr) {
+function drawGrid(name, x, y, w, h) {
+	var attr = {
+		'stroke-width': gridStrokeWidth,
+		stroke: '#666',
+		fill: '300-#666-#222:5-#000'
+	}
+
 	var obj = canvas.rect(x, y, w, h).attr(attr)
 
 	var o = document.getElementById(name)
@@ -640,18 +664,13 @@ window.onload = function() {
 	var sy = winh/5
 	var oh = 4*winh/5-sy*2
 	var ow = (winw - pad)/3 - pad
-	var attr = {
-		'stroke-width': gridStrokeWidth,
-		stroke: '#666',
-		fill: '300-#666-#222:5-#000'
-	}
 
 	var x = pad
-	gqueue = drawGrid('queue', x, sy, ow, oh, attr)
+	gqueue = drawGrid('queue', x, sy, ow, oh)
 	x += ow + pad
-	gjobs = drawGrid('jobs', x, sy, ow, oh, attr)
+	gjobs = drawGrid('jobs', x, sy, ow, oh)
 	x += ow + pad
-	ghistory = drawGrid('history', x, sy, ow, oh, attr)
+	ghistory = drawGrid('history', x, sy, ow, oh)
 
 	var o = document.getElementById('legend')
 	o.style.top = sy + oh + pad + 'px'
