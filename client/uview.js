@@ -1,5 +1,15 @@
 /* $Id$ */
 
+/*
+ * TODO
+ * - scale job width by time
+ *	(o) sum aggregate job runtimes
+ *	(o) compute width based on respective time, bound to a minimum width
+ * - job state transitions are broken
+ * - legend support needs written
+ * - draw grid lines for TB?
+ */
+
 var winw, winh, canvas, scriptNode, data, old_data
 var ghistory, gjobs, gqueue
 var s_history, s_jobs, s_queue
@@ -26,6 +36,7 @@ var excludeList = [
 	'Join_Path',
 	'Keep_Files',
 	'Mail_Points',
+	'Mail_Users',
 	'MemAlloc',
 	'Output_Path',
 	'Rerunable',
@@ -186,16 +197,24 @@ function getCol() {
 }
 
 function getPopupPos(figx, figw, dispw, max, prefBefore) {
-	var pad = 6
-	var res = figx + figw - pad*2
-	if (res + dispw < max)
-		return (res)
-	res = figx - dispw + pad
-	if (res > 0)
-		return (res)
-	if (prefBefore)
+	var res, pad = 6
+	if (prefBefore) {
+		res = figx - dispw + pad
+		if (res > 0)
+			return (res)
+		res = figx + figw - pad*2
+		if (res + dispw < max)
+			return (res)
 		return (0)
-	return (max - dispw - 15)
+	} else {
+		res = figx + figw - pad*2
+		if (res + dispw < max)
+			return (res)
+		res = figx - dispw + pad
+		if (res > 0)
+			return (res)
+		return (max - dispw - 15)
+	}
 }
 
 function inArray(str, list) {
@@ -262,7 +281,7 @@ function toHexColor(rgb) {
 	var s = '#'
 	for (var j = 0; j < 3; j++) {
 		var n = rgb[j].toString(16)
-		if (n < 0x10)
+		if (rgb[j] < 0x10)
 			s += '0'
 		s += n
 	}
@@ -270,11 +289,10 @@ function toHexColor(rgb) {
 }
 
 function strokeShade(orgb) {
-	return [
-		Math.round(orgb[0] * .6),
-		Math.round(orgb[1] * .6),
-		Math.round(orgb[2] * .6)
-	]
+	var n = []
+	for (var j = 0; j < 3; j++)
+		n[j] = Math.round(orgb[j] * .6)
+	return (n)
 }
 
 function fmtSize(sz) {
@@ -302,6 +320,7 @@ function drawSetLabels(jobs) {
 		j.gtextobj = document.createElement('div')
 		j.gtextobj.style.position = 'absolute'
 		j.gtextobj.style.color = '#fff'
+		j.gtextobj.style.cursor = 'default'
 		j.gtextobj.style.fontWeight = 'bold'
 		j.gtextobj.style.textShadow = '0 0 2px black, 0 0 1px black, 0 0 1px black'
 
@@ -346,6 +365,18 @@ function drawLabels() {
 	}
 }
 
+function adjColor(rgb, incr) {
+	var n = []
+	for (var j = 0; j < 3; j++) {
+		n[j] = rgb[j] + incr
+		if (n[j] > 255)
+			n[j] = 255
+		else if (n[j] < 0)
+			n[j] = 0
+	}
+	return (n)
+}
+
 function drawJobs(label, grid, jobs) {
 	var jw, jh, x, y
 
@@ -374,7 +405,10 @@ function drawJobs(label, grid, jobs) {
 			j.Color = getCol()
 			j.StrokeColor = strokeShade(j.Color)
 			var jattr = {
-				fill: toHexColor(j.Color),
+				fill: '105' +
+				    '-' + toHexColor(adjColor(j.Color, 51)) +
+				    '-' + toHexColor(j.Color) + ':20' +
+				    '-' + toHexColor(adjColor(j.Color, -51)),
 				stroke: toHexColor(j.StrokeColor),
 				'stroke-width': 3,
 				opacity: ".7",
@@ -474,7 +508,7 @@ function calcMemAlloc(str) {
 			cpn[1] = cpn[0]
 		nnodes += cpn[1] - cpn[0] + 1
 	}
-	return (nnodes * 64) /* in GB */
+	return (nnodes * s_sysinfo['gb_per_memnode'])
 }
 
 function massageJobs(jobs) {
@@ -607,8 +641,9 @@ window.onload = function() {
 	var oh = 4*winh/5-sy*2
 	var ow = (winw - pad)/3 - pad
 	var attr = {
-		"stroke-width": gridStrokeWidth,
-		"stroke": '#666'
+		'stroke-width': gridStrokeWidth,
+		stroke: '#666',
+		fill: '300-#666-#222:5-#000'
 	}
 
 	var x = pad
