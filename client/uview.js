@@ -406,7 +406,7 @@ function drawJobs(label, grid, jobs) {
 	var agwalltime = 0
 
 	if (jobs.length > 0) {
-		minJobWidth = Math.min(availWidth / jobs.length - 2*pad, 25)
+		minJobWidth = Math.min(availWidth / jobs.length - 2*pad, 35)
 		minWallTime = jobs[0].WallTime
 	}
 	for (var i in jobs) {
@@ -418,17 +418,20 @@ function drawJobs(label, grid, jobs) {
 		agwalltime = 1
 
 	if (availWidth * minWallTime / agwalltime - 2*pad < minJobWidth) {
-		var minFabWallTime = agwalltime * minJobWidth / availWidth
-		for (var i in jobs)
-			if (jobs[i].WallTime < minFabWallTime)
-				jobs[i].WallTime = minFabWallTime
-		agwalltime = 0
-		for (var i in jobs)
-			agwalltime += jobs[i].WallTime
+		for (var jj = 0; jj < 2; jj++) {
+			var fabWallTime = agwalltime * minJobWidth / availWidth
+			agwalltime = 0
+			for (var i in jobs) {
+				if (jobs[i].WallTime < fabWallTime)
+					jobs[i].WallTime = fabWallTime
+				agwalltime += jobs[i].WallTime
+			}
+		}
 	}
 
 	for (var i in jobs)
-		jobs[i].DispWidth = availWidth * jobs[i].WallTime / agwalltime - 2*pad
+		jobs[i].DispWidth = availWidth *
+		    jobs[i].WallTime / agwalltime - 2*pad
 
 	x = gridX + Math.round(gridStrokeWidth/2) + pad
 	y = gridY + gridH + 2*gridStrokeWidth
