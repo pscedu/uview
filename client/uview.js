@@ -64,7 +64,11 @@ function computeShowExcl(name, attr) {
 	}
 }
 
-function strAttrs(o, addpre, excludeList, pre, norecurse) {
+function fmtJobLabel(str) {
+	return ('<span class="label">' + str.replace(/_/, ' ') + ':</span> ')
+}
+
+function strAttrs(o, addpre, excludeList, fmtlabel, pre, norecurse) {
 	var t = ''
 	for (var i in o) {
 		if (excludeList && inArray(i, excludeList))
@@ -72,11 +76,11 @@ function strAttrs(o, addpre, excludeList, pre, norecurse) {
 
 		if (pre)
 			t += pre
-		t += i.replace(/_/, ' ') + ': '
+		t += fmtlabel(i)
 		if (norecurse == null && typeof(o[i]) == 'object')
 			t += '\n' + strAttrs(o[i], addpre,
 			    computeShowExcl(i, excludeList),
-			    (pre ? pre : '') + addpre)
+			    fmtlabel, (pre ? pre : '') + addpre)
 		else {
 			try {
 				t += o[i]
@@ -90,7 +94,8 @@ function strAttrs(o, addpre, excludeList, pre, norecurse) {
 }
 
 function displayAttrs(o, pre) {
-	var s = strAttrs(o, '', '  ', null, 1)
+	var s = strAttrs(o, '', '  ', null, 1,
+	    function(s) { return (s + ': ') })
 	if (pre)
 		s = pre + '\n' + s
 	alert(s)
@@ -232,7 +237,8 @@ function jobHover(j) {
 	o.innerHTML = '<h3>' +
 	    '<div style="background-color: '+toHexColor(j.Color)+'; ' +
 	    'border: 2px solid '+toHexColor(j.StrokeColor)+'"></div>' +
-	    j.Job_Id + '</h3>' + strAttrs(j, '&nbsp;&nbsp;', excludeList).replace(/\n/g, '<br />')
+	    j.Job_Id + '</h3>' +
+	    strAttrs(j, '&nbsp;&nbsp;', excludeList, fmtJobLabel).replace(/\n/g, '<br />')
 
 	o.style.left = getPopupPos(j.gobj.attr('x'),
 	    j.gobj.attr('width'), o.clientWidth, winw, 0) + 'px'
@@ -359,7 +365,7 @@ function drawLabels() {
 
 	if (deadJobs) {
 		for (var j in deadJobs)
-			j.gobj.remove()
+			deadJobs[j].gobj.remove()
 
 		delete deadJobs
 		deadJobs = null
@@ -407,12 +413,11 @@ function drawJobs(label, grid, jobs) {
 			j.StrokeColor = strokeShade(j.Color)
 			var jattr = {
 				fill: '105' +
-				    '-' + toHexColor(adjColor(j.Color, 51)) +
+				    '-' + toHexColor(adjColor(j.Color, 26)) +
 				    '-' + toHexColor(j.Color) + ':20' +
-				    '-' + toHexColor(adjColor(j.Color, -51)),
+				    '-' + toHexColor(adjColor(j.Color, -102)),
 				stroke: toHexColor(j.StrokeColor),
 				'stroke-width': 3,
-				opacity: ".7",
 			}
 			getClip(grid, jattr)
 		//	j.gobj = canvas.rect(gridX, gridY+gridH+8, 0, 0, pad);
