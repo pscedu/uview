@@ -664,7 +664,7 @@ function fetchData() {
 
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
-	newSNode.src = 'http://localhost:24240/UView'
+	newSNode.src = 'http://localhost:24240/UView?' + Math.random()
 	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
