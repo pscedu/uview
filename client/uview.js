@@ -7,7 +7,6 @@
  *	(o) compute width based on respective time, bound to a minimum width
  * - job state transitions are broken
  * - legend support needs written
- * - draw grid lines for TB?
  */
 
 var winw, winh, canvas, scriptNode, data, old_data
@@ -542,9 +541,11 @@ function drawGridLines(gobj) {
 	var y = gobj.attr('y')
 	var h = gobj.attr('height')
 	var w = gobj.attr('width')-gridStrokeWidth
-	for (var j = 1; j < s_sysinfo['mem']/1024; j++) {
-		var ty = y + j*h*1024/s_sysinfo['mem']
+	var ty = y
+	for (var j = s_sysinfo['mem']/1024 - 1; j > 0; j--) {
+		ty += h*1024/s_sysinfo['mem']
 		canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
+		canvas.text(x+15,ty-5,j+'TB').attr({fill:'#999'})
 	}
 }
 
