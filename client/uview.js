@@ -29,6 +29,7 @@ var excludeList = [
 	'qtime',
 
 	'Color',
+	'DispWidth',
 	'Error_Path',
 	'Hold_Types',
 	'Job_Id',
@@ -42,6 +43,7 @@ var excludeList = [
 	'Resource_List:mem',
 	'StrokeColor',
 	'User_List',
+	'WallTime',
 	'exec_host',
 	'gobj',
 	'gtextobj',
@@ -323,6 +325,9 @@ function drawSetLabels(jobs) {
 	for (var i in jobs) {
 		var j = jobs[i]
 
+		if ('gtextobj' in j && j.gtextobj)
+			document.body.removeChild(j.gtextobj)
+
 		j.gtextobj = document.createElement('div')
 		j.gtextobj.style.position = 'absolute'
 		j.gtextobj.style.color = '#fff'
@@ -384,7 +389,7 @@ function adjColor(rgb, incr) {
 }
 
 function drawJobs(label, grid, jobs) {
-	var jw, jh, x, y
+	var jh, x, y
 
 	var pad = 4
 
@@ -392,14 +397,44 @@ function drawJobs(label, grid, jobs) {
 	var gridY = Math.round(grid.attr('y'))
 	var gridH = Math.round(grid.attr('height')) - gridStrokeWidth
 
-	var minJobHeight = 2*gridH / (s_sysinfo['mem']/1024) / 3
+	var availWidth = grid.attr('width') - gridStrokeWidth - 2*pad
 
-	jw = (grid.attr('width') - gridStrokeWidth -
-	    2*pad) / jobs.length - 2*pad
+	var minJobHeight = 2*gridH / (s_sysinfo['mem']/1024) / 3
+	var minJobWidth
+
+	var minWallTime = 0
+	var agwalltime = 0
+
+	if (jobs.length > 0) {
+		minJobWidth = Math.min(availWidth / jobs.length - 2*pad, 25)
+		minWallTime = jobs[0].WallTime
+	}
+	for (var i in jobs) {
+		if (jobs[i].WallTime < minWallTime)
+			minWallTime = jobs[i].WallTime
+		agwalltime += jobs[i].WallTime
+	}
+	if (agwalltime == 0)
+		agwalltime = 1
+
+	if (availWidth * minWallTime / agwalltime - 2*pad < minJobWidth) {
+		var minFabWallTime = agwalltime * minJobWidth / availWidth
+		for (var i in jobs)
+			if (jobs[i].WallTime < minFabWallTime)
+				jobs[i].WallTime = minFabWallTime
+		agwalltime = 0
+		for (var i in jobs)
+			agwalltime += jobs[i].WallTime
+	}
+
+	for (var i in jobs)
+		jobs[i].DispWidth = availWidth * jobs[i].WallTime / agwalltime - 2*pad
+
 	x = gridX + Math.round(gridStrokeWidth/2) + pad
 	y = gridY + gridH + 2*gridStrokeWidth
 	for (var i in jobs) {
 		var j = jobs[i]
+
 		x += pad
 		jh = 100
 		if (j.MemAlloc)
@@ -419,8 +454,7 @@ function drawJobs(label, grid, jobs) {
 				'stroke-width': 3,
 			}
 			getClip(grid, jattr)
-		//	j.gobj = canvas.rect(gridX, gridY+gridH+8, 0, 0, pad);
-			j.gobj = canvas.rect(gridX, gridY, 0, 0, pad);
+			j.gobj = canvas.rect(x, gridY, 0, 0, pad);
 			(function(j) {
 				j.gobj.attr(jattr).hover(
 				    function() { jobHover(j) },
@@ -435,7 +469,7 @@ function drawJobs(label, grid, jobs) {
 		}
 
 		if (j.gobj.attr('x') == x && j.gobj.attr('y') == y-jh &&
-		    j.gobj.attr('width') == Math.round(jw) &&
+		    j.gobj.attr('width') == j.DispWidth &&
 		    j.gobj.attr('height') == jh) {
 			if (drawLabelsTimeout)
 				window.clearTimeout(drawLabelsTimeout)
@@ -449,7 +483,7 @@ function drawJobs(label, grid, jobs) {
 			animObj(j.gobj, {
 				x: x,
 				y: y - jh,
-				width: Math.round(jw),
+				width: j.DispWidth,
 				height: jh,
 			}, animTime, function() {
 				if (drawLabelsTimeout)
@@ -459,7 +493,7 @@ function drawJobs(label, grid, jobs) {
 			})
 		}
 
-		x += jw + pad
+		x += j.DispWidth + pad
 	}
 	setVis('no' + label, jobs.length == 0)
 }
@@ -526,7 +560,13 @@ function massageJobs(jobs) {
 				j.MemAlloc = calcMemAlloc(j.Resource_List.nodeset)
 			else if ('ncpus' in j.Resource_List)
 				j.MemAlloc = s_sysinfo['mempercpu'] * j.Resource_List.ncpus
-		}
+			var cpn = j['Resource_List']['walltime'].split(/:/)
+			j.WallTime = parseInt(cpn[0])
+			if (j.WallTime < 1)
+				j.WallTime = 1
+		} else
+			j.WallTime = 1
+
 		if ('start_time' in j)
 			j['Start time'] = new Date(j.start_time * 1000).toString()
 		else if ('etime' in j)
