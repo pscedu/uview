@@ -30,6 +30,7 @@ sub uview {
 			hostname	=> $s_hostname,
 			mem		=> 16*1024,
 			mempercpu	=> 8,
+			gb_per_memnode	=> 64,
 		},
 		history	=> thaw($s_history),
 		jobs	=> thaw($s_jobs),
@@ -79,10 +80,7 @@ threads->create(sub {
 
 			my ($j);
 			for $j (@jobs) {
-				unless (hasjob(\@newjobs, $j)) {
-					print STDERR "moving job to history: $j->{Job_Id}\n";
-					push @history, $j
-				}
+				push @history, $j unless hasjob(\@newjobs, $j);
 			}
 
 			@jobs = ();
