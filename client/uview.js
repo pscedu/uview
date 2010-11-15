@@ -2,9 +2,6 @@
 
 /*
  * TODO
- * - scale job width by time
- *	(o) sum aggregate job runtimes
- *	(o) compute width based on respective time, bound to a minimum width
  * - job state transitions are broken
  * - legend support needs written
  */
@@ -95,8 +92,9 @@ function strAttrs(o, addpre, excludeList, fmtlabel, pre, norecurse) {
 }
 
 function displayAttrs(o, pre) {
-	var s = strAttrs(o, '', '  ', null, 1,
-	    function(s) { return (s + ': ') })
+	var s = strAttrs(o, '  ', null,
+	    function(s) { return (s + ': ') },
+	    '', 1)
 	if (pre)
 		s = pre + '\n' + s
 	alert(s)
@@ -710,8 +708,8 @@ window.onload = function() {
 	winh = window.innerHeight
 	canvas = Raphael(0, 0, winw, winh)
 
-	var sy = winh/5
-	var oh = 4*winh/5-sy*2
+	var sy = 1.5*winh/5
+	var oh = 2*winh/5
 	var ow = (winw - pad)/3 - pad
 
 	var x = pad
@@ -742,6 +740,25 @@ window.onload = function() {
 		case ' ':
 			fetchData()
 			break
+		case 'k':
+			__ = 1
+			if (data && data.result &&
+			    data.result.jobs.length) {
+				var d = []
+				for (var _j = 0; _j < data.result.jobs.length; _j++)
+					d[_j] = data.result.jobs[_j]
+				data.result.jobs = d
+
+				d = []
+				for (var _j = 0; _j < data.result.history.length; _j++)
+					d[_j] = data.result.history[_j]
+				data.result.history = d
+
+				data.result.history.push(data.result.jobs.pop())
+				inFetching = 1
+				loadData()
+			}
+			break;
 		}
 	}
 

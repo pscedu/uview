@@ -43,6 +43,7 @@
 				position: absolute;
 				font-weight: bold;
 				font-size: 1.5em;
+				text-shadow: .05em .05em 1px #456;
 			}
 			#nohistory, #nojobs, #noqueue {
 				position: absolute;
@@ -99,7 +100,7 @@
 		<div id='history'>history</div>
 		<div id='nohistory'>No history available</div>
 
-		<div id='legend'>- legend -</div>
+		<div id='legend'></div>
 
 		<div id='popup' onmouseover='window.clearTimeout(popupTimeout); popupTimeout = null'
 			onmouseout="popupTimeout = window.setTimeout('clearPopup()', 100)"></div>
