@@ -308,7 +308,7 @@ function fmtSize(sz) {
 	return (sz + 'GB')
 }
 
-function getJobLabelFontSize(label, w, h) {
+function getJobLabelFontSize(label, w, h, min) {
 	var n = Math.round(w/5)
 	if (n < 14)
 		n = 14
@@ -317,8 +317,8 @@ function getJobLabelFontSize(label, w, h) {
 		n = h * fadj
 	if (w / label.length < n)
 		n = w/label.length
-	if (n < 9)
-		n = 9
+	if (n < min)
+		n = min
 	return (n)
 }
 
@@ -344,7 +344,7 @@ function drawSetLabels(jobs) {
 		var label = fmtSize(j.MemAlloc)
 		j.gtextobj.innerHTML = label
 		j.gtextobj.style.fontSize = getJobLabelFontSize(label,
-			j.gobj.attr('width'), j.gobj.attr('height')) + 'pt'
+			j.gobj.attr('width'), j.gobj.attr('height'), 6) + 'pt'
 
 		document.body.appendChild(j.gtextobj)
 
@@ -367,9 +367,12 @@ function drawSetLabels(jobs) {
 		j.gtextobj2.style.lineHeight = '.8em'
 		j.gtextobj2.style.textShadow = '0 0 2px black, 0 0 1px black, 0 0 1px black'
 
-		j.gtextobj2.innerHTML = j.Job_Name
-		j.gtextobj2.style.fontSize = getJobLabelFontSize(j.Job_Name,
-			j.gobj.attr('width'), j.gobj.attr('height')) + 'pt'
+		label = j.Job_Name
+		if (label.length > 16)
+			label = label.substring(0, 16).replace(/[.][a-zA-Z0-9]*$/, '')
+		j.gtextobj2.innerHTML = label
+		j.gtextobj2.style.fontSize = getJobLabelFontSize(label,
+			j.gobj.attr('width'), j.gobj.attr('height'), 9) + 'pt'
 
 		document.body.appendChild(j.gtextobj2)
 
@@ -650,8 +653,6 @@ function loadData() {
 
 	if (s_sysinfo == null && data.result.sysinfo) {
 		s_sysinfo = data.result.sysinfo
-//		document.getElementById('title').innerHTML =
-//		    s_sysinfo.hostname + ' job monitor'
 
 		drawGridLines(ghistory)
 		drawGridLines(gjobs)
@@ -752,7 +753,7 @@ window.onload = function() {
 	winh = window.innerHeight
 	canvas = Raphael(0, 0, winw, winh)
 
-	var sy = 1.5*winh/5
+	var sy = 2*winh/5
 	var oh = 2*winh/5
 	var ow = (winw - pad)/3 - pad
 
