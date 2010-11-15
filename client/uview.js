@@ -37,13 +37,14 @@ var excludeList = [
 	'MemAlloc',
 	'Output_Path',
 	'Rerunable',
-	'Resource_List:mem',
+	'Resource_List:mem,walltime_max,walltime_min',
 	'StrokeColor',
 	'User_List',
 	'WallTime',
 	'exec_host',
 	'gobj',
 	'gtextobj',
+	'gtextobj2',
 	'interactive',
 	'job_state',
 	'server',
@@ -316,6 +317,8 @@ function getJobLabelFontSize(label, w, h) {
 		n = h * fadj
 	if (w / label.length < n)
 		n = w/label.length
+	if (n < 9)
+		n = 9
 	return (n)
 }
 
@@ -323,14 +326,19 @@ function drawSetLabels(jobs) {
 	for (var i in jobs) {
 		var j = jobs[i]
 
-		if ('gtextobj' in j && j.gtextobj)
+		if ('gtextobj' in j && j.gtextobj) {
 			document.body.removeChild(j.gtextobj)
+			document.body.removeChild(j.gtextobj2)
+		}
 
 		j.gtextobj = document.createElement('div')
+
 		j.gtextobj.style.position = 'absolute'
 		j.gtextobj.style.color = '#fff'
 		j.gtextobj.style.cursor = 'default'
 		j.gtextobj.style.fontWeight = 'bold'
+		j.gtextobj.style.textAlign = 'center'
+		j.gtextobj.style.lineHeight = '.8em'
 		j.gtextobj.style.textShadow = '0 0 2px black, 0 0 1px black, 0 0 1px black'
 
 		var label = fmtSize(j.MemAlloc)
@@ -348,6 +356,36 @@ function drawSetLabels(jobs) {
 		Math.round(j.gobj.attr('y') +
 			j.gobj.attr('height')/2-2 -
 			j.gtextobj.clientHeight/2) + 'px'
+
+		/* job name */
+		j.gtextobj2 = document.createElement('div')
+		j.gtextobj2.style.position = 'absolute'
+		j.gtextobj2.style.color = '#fff'
+		j.gtextobj2.style.cursor = 'default'
+		j.gtextobj2.style.fontWeight = 'bold'
+		j.gtextobj2.style.textAlign = 'center'
+		j.gtextobj2.style.lineHeight = '.8em'
+		j.gtextobj2.style.textShadow = '0 0 2px black, 0 0 1px black, 0 0 1px black'
+
+		j.gtextobj2.innerHTML = j.Job_Name
+		j.gtextobj2.style.fontSize = getJobLabelFontSize(j.Job_Name,
+			j.gobj.attr('width'), j.gobj.attr('height')) + 'pt'
+
+		document.body.appendChild(j.gtextobj2)
+
+		j.gtextobj2.style.left =
+		Math.round(j.gobj.attr('x') +
+			j.gobj.attr('width')/2 -
+			j.gtextobj2.clientWidth/2) + 'px'
+//		if (j.gtextobj2.clientWidth > j.gobj.attr('width')) {
+			j.gtextobj2.style.top = Math.round(j.gobj.attr('y')) -
+			    .8*j.gtextobj2.clientWidth + j.Job_Name.length*2 - 10 + 'px'
+			j.gtextobj2.style.MozTransform = 'rotate(70deg)'
+//		} else {
+//			j.gtextobj2.style.top = Math.round(j.gobj.attr('y')) -
+//			    j.gtextobj2.clientHeight + 'px'
+//		}
+		document.body.appendChild(j.gtextobj2)
 
 		;(function(j) {
 			j.gtextobj.onmouseover = function() { jobHover(j) }
@@ -466,6 +504,7 @@ function drawJobs(label, grid, jobs) {
 
 		if (j.gtextobj) {
 			document.body.removeChild(j.gtextobj)
+			document.body.removeChild(j.gtextobj2)
 			j.gtextobj = null
 		}
 
@@ -528,6 +567,7 @@ function jobsPersist(savedata, newdata, notfoundcb) {
 
 function clearJob(j) {
 	document.body.removeChild(j.gtextobj)
+	document.body.removeChild(j.gtextobj2)
 	return (animObj(j.gobj, {
 		width: 0,
 		height: 0,
@@ -562,8 +602,8 @@ function massageJobs(jobs) {
 			else if ('ncpus' in j.Resource_List)
 				j.MemAlloc = s_sysinfo['mempercpu'] * j.Resource_List.ncpus
 			var cpn = j['Resource_List']['walltime'].split(/:/)
-			j.WallTime = parseInt(cpn[0])
-			if (j.WallTime < 1)
+			j.WallTime = parseInt(cpn[0],10) + parseInt(cpn[1],10)/60
+			if (j.WallTime == 0)
 				j.WallTime = 1
 		} else
 			j.WallTime = 1
@@ -610,8 +650,8 @@ function loadData() {
 
 	if (s_sysinfo == null && data.result.sysinfo) {
 		s_sysinfo = data.result.sysinfo
-		document.getElementById('title').innerHTML =
-		    s_sysinfo.hostname + ' job monitor'
+//		document.getElementById('title').innerHTML =
+//		    s_sysinfo.hostname + ' job monitor'
 
 		drawGridLines(ghistory)
 		drawGridLines(gjobs)
