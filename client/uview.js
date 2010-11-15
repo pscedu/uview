@@ -311,9 +311,9 @@ function getJobLabelFontSize(label, w, h) {
 	var n = Math.round(w/5)
 	if (n < 14)
 		n = 14
-	var fadj = 5
-	if (n > h - fadj)
-		n = h - fadj
+	var fadj = 2/3
+	if (n > h * fadj)
+		n = h * fadj
 	if (w / label.length < n)
 		n = w/label.length
 	return (n)
@@ -397,7 +397,7 @@ function drawJobs(label, grid, jobs) {
 
 	var availWidth = grid.attr('width') - gridStrokeWidth - 2*pad
 
-	var minJobHeight = 2*gridH / (s_sysinfo['mem']/1024) / 3
+	var minJobHeight = 2*gridH / (s_sysinfo['mem']) / 3
 	var minJobWidth
 
 	var minWallTime = 0
@@ -455,7 +455,7 @@ function drawJobs(label, grid, jobs) {
 				'stroke-width': 3,
 			}
 			getClip(grid, jattr)
-			j.gobj = canvas.rect(x, gridY, 0, 0, pad);
+			j.gobj = canvas.rect(x, y, 0, 0, pad);
 			(function(j) {
 				j.gobj.attr(jattr).hover(
 				    function() { jobHover(j) },
@@ -582,11 +582,14 @@ function drawGridLines(gobj) {
 	var y = gobj.attr('y')
 	var h = gobj.attr('height')
 	var w = gobj.attr('width')-gridStrokeWidth
-	var ty = y
-	for (var j = s_sysinfo['mem']/1024 - 1; j > 0; j--) {
-		ty += h*1024/s_sysinfo['mem']
+	var ty = y+h+h/16
+	for (var j = 0; j < 16; j++) {
+		ty -= h/16
 		canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
-		canvas.text(x+15,ty-5,j+'TB').attr({fill:'#999'})
+		canvas.text(x+15,ty-5,j*s_sysinfo['mem']/16+'GB').attr({
+		    fill:'#999',
+		    'font-family':'Candara'
+		})
 	}
 }
 
@@ -607,7 +610,8 @@ function loadData() {
 
 	if (s_sysinfo == null && data.result.sysinfo) {
 		s_sysinfo = data.result.sysinfo
-		document.getElementById('title').innerHTML = s_sysinfo.hostname
+		document.getElementById('title').innerHTML =
+		    s_sysinfo.hostname + ' job monitor'
 
 		drawGridLines(ghistory)
 		drawGridLines(gjobs)
@@ -641,7 +645,7 @@ function loadData() {
 
 	if (refetchTimeout)
 		window.clearTimeout(refetchTimeout)
-	refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
+	refetchTimeout = window.setTimeout('window.location.reload()', 60 * 1000)
 }
 
 function fetchData() {
