@@ -724,7 +724,7 @@ function fetchData() {
 
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
-	newSNode.src = 'http://mugatu.psc.edu:24240/UView?' + Math.random()
+	newSNode.src = 'fetch.pl'
 	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
