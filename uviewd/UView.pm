@@ -77,7 +77,7 @@ sub hasjob {
 threads->create(sub {
 	my $str = "";
 	for (;;) {
-		my $nstr = `ssh bl0.t qstat -fx`;
+		my $nstr = `qstat -fx`;
 		if ($nstr ne $str) {
 			my $ndata = XMLin($nstr);
 
