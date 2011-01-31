@@ -2,7 +2,7 @@
 /*
  * %PSC_START_COPYRIGHT%
  * -----------------------------------------------------------------------------
- * Copyright (c) 2010, Pittsburgh Supercomputing Center (PSC).
+ * Copyright (c) 2010-2011, Pittsburgh Supercomputing Center (PSC).
  *
  * Permission to use, copy, and modify this software and its documentation
  * without fee for personal use or non-commercial use within your organization
@@ -724,7 +724,7 @@ function fetchData() {
 
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
-	newSNode.src = 'http://localhost:24240/UView?' + Math.random()
+	newSNode.src = 'http://mugatu.psc.edu:24240/UView?' + Math.random()
 	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
