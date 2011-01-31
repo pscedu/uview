@@ -1,7 +1,7 @@
 # $Id$
 
 # min hr mday mon wday
-  */5 *  *    *   *	cd ~/code/proj/uview/uviewd/ && screen -S uviewd -d -m perl uviewd.pl
+  */5 *  *    *   *	cd ~/code/proj/uview/uviewd/ && screen -S uviewd -d -m sh runuview.sh
 
 # bl0
 */5 *  *    *   *	screen -S uvmon-tunnel -d -m ssh -o "ExitOnForwardFailure yes" -gNR 24240:localhost:24240 m
