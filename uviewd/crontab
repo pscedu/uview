@@ -1,2 +1,10 @@
+# $Id$
+
 # min hr mday mon wday
+
+# forwarding HTTP server
+  */5 *  *    *   *	screen -S bl0-tunnel -d -m ssh -gfnL 24240:localhost:24240 bl0.t
+  */5 *  *    *   *	screen -S bl1-tunnel -d -m ssh -gfnL 24241:localhost:24240 bl1.t
+
+# data collection server
   */5 *  *    *   *	cd ~/code/proj/uview/uviewd/ && screen -S uview -d -m perl uviewd.pl
