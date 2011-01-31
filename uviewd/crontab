@@ -1,2 +1,2 @@
 # min hr mday mon wday
-  */5 *  *    *   *	~/code/proj/uview/uviewd/runuview.sh
+  */5 *  *    *   *	cd ~/code/proj/uview/uviewd/ && screen -S uview -d -m perl uviewd.pl
