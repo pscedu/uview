@@ -43,6 +43,7 @@ sub uview {
 	return {
 		sysinfo	=> {
 			hostname	=> $s_hostname,
+			# the following are in units of GB
 			mem		=> 16*1024,
 			mempercpu	=> 8,
 			gb_per_memnode	=> 64,
