@@ -20,7 +20,7 @@
 /*
  * TODO
  * - job state transitions are broken
- * - legend support needs written
+ * - legend
  */
 
 var winw, winh, canvas, scriptNode, data, old_data
@@ -32,9 +32,10 @@ var refetchTimeout = null
 var drawLabelsTimeout = null
 var gridStrokeWidth = 2
 var popupTimeout
-var animTime = 700
+var animTime = 100
 var inFetching = 0
 var deadJobs = null
+var maxDescLen
 
 var excludeList = [
 	'ctime',
@@ -248,12 +249,12 @@ function inArray(str, list) {
 
 function jobHover(j) {
 	j.gobj.attr({
-		'stroke-width': 6,
+		'stroke-width': 4,
 	})
 	var o = document.getElementById('popup')
 	o.innerHTML = '<h3>' +
 	    '<div style="background-color: '+toHexColor(j.Color)+'; ' +
-	    'border: 2px solid '+toHexColor(j.StrokeColor)+'"></div>' +
+	    'border: 2px solid '+toHexColor(j.StrokeColor)+'; overflow: scroll"></div>' +
 	    j.Job_Id + '</h3>' +
 	    strAttrs(j, '&nbsp;&nbsp;', excludeList, fmtJobLabel).replace(/\n/g, '<br />')
 
@@ -646,7 +647,7 @@ function drawGridLines(gobj) {
 	for (var j = 0; j < 16; j++) {
 		ty -= h/16
 		canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
-		canvas.text(x+15,ty-5,j*s_sysinfo['mem']/16+'GB').attr({
+		canvas.text(x+15, ty-5, fmtSize(j*s_sysinfo['mem']/16)).attr({
 		    fill:'#999',
 		    'font-family':'Candara'
 		})
@@ -724,7 +725,7 @@ function fetchData() {
 
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
-	newSNode.src = 'fetch.pl'
+	newSNode.src = 'http://mugatu.psc.edu:24240/UView?' + Math.random()
 	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
