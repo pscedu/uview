@@ -61,6 +61,7 @@ var excludeList = [
 	'WallTime',
 	'exec_host',
 	'gobj',
+	'grid',
 	'gtextobj',
 	'gtextobj2',
 	'interactive',
@@ -124,7 +125,7 @@ function getClip(obj, attr) {
 	    obj.attr('x') + ', ' +
 	    obj.attr('y') + ', ' +
 	    obj.attr('width') + ', ' +
-	    (obj.attr('height')- gridStrokeWidth/2)
+	    (obj.attr('height') - gridStrokeWidth/2)
 }
 
 var colors = [
@@ -260,7 +261,10 @@ function jobHover(j) {
 
 	o.style.left = getPopupPos(j.gobj.attr('x'),
 	    j.gobj.attr('width'), o.clientWidth, winw, 0) + 'px'
-	o.style.top = getPopupPos(j.gobj.attr('y'),
+	var adjy = 0
+	if (j.gobj.attr('height') < 10)
+		adjy -= 10
+	o.style.top = getPopupPos(j.gobj.attr('y') + adjy,
 	    j.gobj.attr('height'), o.clientHeight, winh, 1) + 'px'
 
 	if (popupTimeout && (popJob == j || popJob == null)) {
@@ -279,9 +283,10 @@ function jobHover(j) {
 
 function clearPopup() {
 	popupTimeout = null
-	popJob.gobj.attr({
-		'stroke-width': 3,
-	})
+	    if (popJob)
+		    popJob.gobj.attr({
+			    'stroke-width': 3,
+		    })
 	popJob = null
 	setVis('popup', 0)
 }
@@ -296,6 +301,11 @@ function setVis(name, vis) {
 		o.style.visibility = 'visible'
 	else
 		o.style.visibility = 'hidden'
+}
+
+function setPos(o, x, y) {
+	o.style.left = Math.round(x) + 'px'
+	o.style.top = Math.round(y) + 'px'
 }
 
 function animObj(obj, attr, time, cb) {
@@ -322,8 +332,8 @@ function strokeShade(orgb) {
 
 function fmtSize(sz) {
 	if (sz >= 1024)
-		return (Math.round(sz/1024*100)/100 + 'TB')
-	return (sz + 'GB')
+		return (Math.round(sz/1024*100)/100 + 'T')
+	return (sz + 'G')
 }
 
 function getJobLabelFontSize(label, w, h, min) {
@@ -366,14 +376,12 @@ function drawSetLabels(jobs) {
 
 		document.body.appendChild(j.gtextobj)
 
-		j.gtextobj.style.left =
-		Math.round(j.gobj.attr('x') +
-			j.gobj.attr('width')/2 -
-			j.gtextobj.clientWidth/2) + 'px'
-		j.gtextobj.style.top =
-		Math.round(j.gobj.attr('y') +
-			j.gobj.attr('height')/2-2 -
-			j.gtextobj.clientHeight/2) + 'px'
+		setPos(j.gtextobj, j.gobj.attr('x') +
+		    j.gobj.attr('width')/2 -
+		    j.gtextobj.clientWidth/2,
+		    j.gobj.attr('y') +
+		    j.gobj.attr('height')/2-2 -
+		    j.gtextobj.clientHeight/2)
 
 		/* job name */
 		j.gtextobj2 = document.createElement('div')
@@ -392,20 +400,20 @@ function drawSetLabels(jobs) {
 		j.gtextobj2.style.fontSize = getJobLabelFontSize(label,
 			j.gobj.attr('width'), j.gobj.attr('height'), 9) + 'pt'
 
-		document.body.appendChild(j.gtextobj2)
+		var angle = 2 * Math.PI * 70 / 360
 
-		j.gtextobj2.style.left =
-		Math.round(j.gobj.attr('x') +
-			j.gobj.attr('width')/2 -
-			j.gtextobj2.clientWidth/2) + 'px'
-//		if (j.gtextobj2.clientWidth > j.gobj.attr('width')) {
-			j.gtextobj2.style.top = Math.round(j.gobj.attr('y')) -
-			    .8*j.gtextobj2.clientWidth + j.Job_Name.length*2 - 10 + 'px'
+		var w = j.gtextobj2.clientWidth
+		var labelX = j.gobj.attr('x') + j.gobj.attr('width')/2 - w/2
+		if ('MozTransform' in j.gtextobj2.style) {
+			setPos(j.gtextobj2, labelX + w/2 -
+			    w * Math.cos(angle)/2,
+			    j.grid.attr('y') + j.grid.attr('height') +
+			    w * Math.sin(angle)/2)
+
 			j.gtextobj2.style.MozTransform = 'rotate(70deg)'
-//		} else {
-//			j.gtextobj2.style.top = Math.round(j.gobj.attr('y')) -
-//			    j.gtextobj2.clientHeight + 'px'
-//		}
+		} else {
+			setPos(j.gtextobj2, labelX, j.gobj.attr('y'))
+		}
 		document.body.appendChild(j.gtextobj2)
 
 		;(function(j) {
@@ -456,7 +464,7 @@ function drawJobs(label, grid, jobs) {
 
 	var availWidth = grid.attr('width') - gridStrokeWidth - 2*pad
 
-	var minJobHeight = 2*gridH / (s_sysinfo['mem']) / 3
+	var minJobHeight = gridH/16/3
 	var minJobWidth
 
 	var minWallTime = 0
@@ -494,6 +502,7 @@ function drawJobs(label, grid, jobs) {
 	y = gridY + gridH + 2*gridStrokeWidth
 	for (var i in jobs) {
 		var j = jobs[i]
+		j.grid = grid
 
 		x += pad
 		jh = 100
