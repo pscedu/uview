@@ -350,6 +350,20 @@ function getJobLabelFontSize(label, w, h, min) {
 	return (n)
 }
 
+function hasTransform(o)
+{
+	return ('MozTransform' in o.style ||
+	    'WebkitTransform' in o.style)
+}
+
+function setTransform(o, t)
+{
+	if ('MozTransform' in o.style)
+		o.style.MozTransform = t
+	if ('WebkitTransform' in o.style)
+		o.style.WebkitTransform = t
+}
+
 function drawSetLabels(jobs) {
 	for (var i in jobs) {
 		var j = jobs[i]
@@ -402,19 +416,19 @@ function drawSetLabels(jobs) {
 
 		var angle = 2 * Math.PI * 70 / 360
 
+		document.body.appendChild(j.gtextobj2)
+
 		var w = j.gtextobj2.clientWidth
 		var labelX = j.gobj.attr('x') + j.gobj.attr('width')/2 - w/2
-		if ('MozTransform' in j.gtextobj2.style) {
-			setPos(j.gtextobj2, labelX + w/2 -
-			    w * Math.cos(angle)/2,
+		if (hasTransform(j.gtextobj2)) {
+			setPos(j.gtextobj2, labelX + w/2 - w * Math.cos(angle),
 			    j.grid.attr('y') + j.grid.attr('height') +
 			    w * Math.sin(angle)/2)
 
-			j.gtextobj2.style.MozTransform = 'rotate(70deg)'
+			setTransform(j.gtextobj2, 'rotate(70deg)')
 		} else {
 			setPos(j.gtextobj2, labelX, j.gobj.attr('y'))
 		}
-		document.body.appendChild(j.gtextobj2)
 
 		;(function(j) {
 			j.gtextobj.onmouseover = function() { jobHover(j) }
