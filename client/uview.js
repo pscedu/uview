@@ -23,18 +23,20 @@
  * - legend
  */
 
-var winw, winh, canvas, scriptNode, data, old_data
 var ghistory, gjobs, gqueue
 var s_history, s_jobs, s_queue
 var s_sysinfo
+
+var winw, winh, canvas, scriptNode, data, old_data
 var popJob
-var refetchTimeout = null
-var drawLabelsTimeout = null
+var deadJobs = null
+
+var refetchTimeout = null, drawLabelsTimeout = null
+var failedTimeout = null, popupTimeout = null
+
 var gridStrokeWidth = 2
-var popupTimeout
 var animTime = 100
 var inFetching = 0
-var deadJobs = null
 var maxDescLen
 
 var excludeList = [
@@ -350,14 +352,12 @@ function getJobLabelFontSize(label, w, h, min) {
 	return (n)
 }
 
-function hasTransform(o)
-{
+function hasTransform(o) {
 	return ('MozTransform' in o.style ||
 	    'WebkitTransform' in o.style)
 }
 
-function setTransform(o, t)
-{
+function setTransform(o, t) {
 	if ('MozTransform' in o.style)
 		o.style.MozTransform = t
 	if ('WebkitTransform' in o.style)
@@ -678,6 +678,11 @@ function drawGridLines(gobj) {
 }
 
 function loadData() {
+	if (failedTimeout) {
+		window.clearTimeout(failedTimeout)
+		failedTimeout = null
+	}
+
 	if (data == null) {
 		data = {
 			result: {
@@ -698,6 +703,8 @@ function loadData() {
 		drawGridLines(ghistory)
 		drawGridLines(gjobs)
 		drawGridLines(gqueue)
+
+		document.getElementById('host').innerHTML = s_sysinfo['hostname']
 	}
 
 	massageJobs(data.result.history)
@@ -727,7 +734,19 @@ function loadData() {
 
 	if (refetchTimeout)
 		window.clearTimeout(refetchTimeout)
-	refetchTimeout = window.setTimeout('window.location.reload()', 60 * 1000)
+	refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
+}
+
+function failDataLoad() {
+	if (inFetching) {
+		document.body.removeChild(scriptNode)
+		inFetching = 0
+		failedTimeout = null
+		setStatus('Data failed to load')
+		if (refetchTimeout)
+			window.clearTimeout(refetchTimeout)
+		refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
+	}
 }
 
 function fetchData() {
@@ -752,6 +771,10 @@ function fetchData() {
 	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
+
+	if (failedTimeout)
+		window.clearTimeout(failedTimeout)
+	failedTimeout = window.setTimeout('failDataLoad()', 10 * 1000)
 }
 
 function drawGrid(name, x, y, w, h) {

@@ -57,6 +57,9 @@
 					-.04em  .04em 6px violet,
 					 .04em  .04em 6px violet;
 			}
+			#hostinfo {
+				text-align: center;
+			}
 			#legend {
 				position: absolute;
 				font-weight: bold;
@@ -81,6 +84,7 @@
 				font-size: .9em;
 				-moz-border-radius: 1em;
 				-webkit-border-radius: 1em;
+				border-radius: 1em;
 			}
 			#popup h3 {
 				margin-top: 0;
@@ -97,6 +101,7 @@
 				height: .75em;
 				-moz-box-shadow: 0 0 1px #ccc;
 				-webkit-box-shadow: 0 0 1px #ccc;
+				box-shadow: 0 0 1px #ccc;
 			}
 			.label {
 				color: #cc9;
@@ -108,6 +113,10 @@
 	</head>
 	<body>
 		<div id='title'>blacklight job monitor</div>
+		<div id='hostinfo'>
+			<span id='host'></span>
+			&copy; 2011 PSC
+		</div>
 
 		<div id='queue'>queue</div>
 		<div id='noqueue'>No jobs in queue</div>
