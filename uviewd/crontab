@@ -4,7 +4,7 @@
   */5 *  *    *   *	cd ~/code/proj/uview/uviewd/ ; screen -S uviewd -X redisplay || screen -S uviewd -d -m sh runuview.sh
 
 # bl0
-*/5 *  *    *   *	screen -S uvmon-tunnel -X redisplay || screen -S uvmon-tunnel -d -m ssh -o "ExitOnForwardFailure yes" -gR 24240:localhost:24240 m
+*/5 *  *    *   *	screen -S uvmon-tunnel -X redisplay || screen -S uvmon-tunnel -d -m ssh -o "ExitOnForwardFailure yes" -gR 24240:localhost:24240 mugatu
 
 # bl1
-*/5 *  *    *   *	screen -S uvmon-tunnel -X redisplay || screen -S uvmon-tunnel -d -m ssh -o "ExitOnForwardFailure yes" -gR 24240:localhost:24241 m
+*/5 *  *    *   *	screen -S uvmon-tunnel -X redisplay || screen -S uvmon-tunnel -d -m ssh -o "ExitOnForwardFailure yes" -gR 24241:localhost:24240 mugatu
