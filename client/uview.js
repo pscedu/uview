@@ -83,60 +83,6 @@ var excludeList = [
 	'umask',
 ]
 
-function computeShowExcl(name, attr) {
-	for (var i in attr) {
-		var r = attr[i].split(/:/)
-		if (r[0] == name)
-			return r[1].split(/,/)
-	}
-}
-
-function fmtJobLabel(str) {
-	return ('<span class="label">' + str.replace(/_/, ' ') + ':</span> ')
-}
-
-function strAttrs(o, addpre, excludeList, fmtlabel, pre, norecurse) {
-	var t = ''
-	for (var i in o) {
-		if (excludeList && inArray(i, excludeList))
-			continue
-
-		if (pre)
-			t += pre
-		t += fmtlabel(i)
-		if (norecurse == null && typeof(o[i]) == 'object')
-			t += '\n' + strAttrs(o[i], addpre,
-			    computeShowExcl(i, excludeList),
-			    fmtlabel, (pre ? pre : '') + addpre)
-		else {
-			try {
-				t += o[i]
-			} catch (e) {
-				t += '?'
-			}
-			t += '\n'
-		}
-	}
-	return (t)
-}
-
-function displayAttrs(o, pre) {
-	var s = strAttrs(o, '  ', null,
-	    function(s) { return (s + ': ') },
-	    '', 1)
-	if (pre)
-		s = pre + '\n' + s
-	alert(s)
-}
-
-function getClip(obj, attr) {
-	attr['clip-rect'] =
-	    obj.attr('x') + ', ' +
-	    obj.attr('y') + ', ' +
-	    obj.attr('width') + ', ' +
-	    (obj.attr('height') - gridStrokeWidth/2)
-}
-
 var colors = [
 	[ 0	, 0	, 127	],
 	[ 0	, 0	, 191	],
@@ -217,14 +163,67 @@ var colors = [
 	[ 255	, 63	, 127	],
 	[ 255	, 127	, 0	],
 	[ 255	, 127	, 63	],
-	[ 255	, 191	, 0	],
+	[ 255	, 191	, 0	]
 ]
 
 var colIdx = 0
+
+function computeShowExcl(name, attr) {
+	for (var i in attr) {
+		var r = attr[i].split(/:/)
+		if (r[0] == name)
+			return r[1].split(/,/)
+	}
+}
+
+function fmtJobLabel(str) {
+	return ('<span class="label">' + str.replace(/_/, ' ') + ':</span> ')
+}
+
+function strAttrs(o, addpre, excludeList, fmtlabel, pre, norecurse) {
+	var t = ''
+	for (var i in o) {
+		if (excludeList && inArray(i, excludeList))
+			continue
+
+		if (pre)
+			t += pre
+		t += fmtlabel(i)
+		if (norecurse == null && typeof(o[i]) == 'object')
+			t += '\n' + strAttrs(o[i], addpre,
+			    computeShowExcl(i, excludeList),
+			    fmtlabel, (pre ? pre : '') + addpre)
+		else {
+			try {
+				t += o[i]
+			} catch (e) {
+				t += '?'
+			}
+			t += '\n'
+		}
+	}
+	return (t)
+}
+
+function displayAttrs(o, pre) {
+	var s = strAttrs(o, '  ', null,
+	    function(s) { return (s + ': ') },
+	    '', 1)
+	if (pre)
+		s = pre + '\n' + s
+	alert(s)
+}
+
+function getClip(obj, attr) {
+	attr['clip-rect'] =
+	    obj.attr('x') + ', ' +
+	    obj.attr('y') + ', ' +
+	    obj.attr('width') + ', ' +
+	    (obj.attr('height') - gridStrokeWidth/2)
+}
+
 function getCol() {
-	if (colIdx >= colors.length)
-		colIdx = 0
-	var c = colors[colIdx]
+	var c = colors[colIdx % colors.length]
 	colIdx += 7
 	return (c)
 }
@@ -687,11 +686,11 @@ function drawGridLines(gobj) {
 	var o
 	for (var j = 0; j < 16; j++) {
 		ty -= h/16
-		o = canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
+		o = canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke: '#333'})
 		gobj.gridLines.push(o)
 		o = canvas.text(x+15, ty-5, fmtSize(j*s_sysinfo['mem']/16)).attr({
-		    fill:'#999',
-		    'font-family':'Candara'
+		    fill: '#999',
+		    'font-family': 'Candara'
 		})
 		gobj.gridLines.push(o)
 	}
