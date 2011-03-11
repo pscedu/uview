@@ -39,11 +39,11 @@ var gridStrokeWidth = 2
 var animTime = 100
 var inFetching = 0
 var maxDescLen
-var selectedSSI = 1
+var selectedSSI = 0
 
 var dataURLs = [
-	[ 'bl0', 'http://mugatu.psc.edu:24241/UView' ],
-	[ 'bl1', 'http://mugatu.psc.edu:24240/UView' ]
+	[ 'bl0', 'http://mugatu.psc.edu:24240/UView' ],
+	[ 'bl1', 'http://mugatu.psc.edu:24241/UView' ]
 ]
 
 var excludeList = [
@@ -361,7 +361,7 @@ function getJobLabelFontSize(label, w, h, min) {
 		n = w/label.length
 	if (n < min)
 		n = min
-	return (n)
+	return (Math.round(n))
 }
 
 function hasTransform(o) {
@@ -423,7 +423,7 @@ function drawSetLabels(jobs) {
 		if (label.length > 16)
 			label = label.substring(0, 16).replace(/[.][a-zA-Z0-9]*$/, '')
 		j.gtextobj2.innerHTML = label
-		j.gtextobj2.style.fontSize = 10
+		j.gtextobj2.style.fontSize = 10 + 'pt'
 
 		var angle = 2 * Math.PI * 70 / 360
 
@@ -750,7 +750,10 @@ function loadData() {
 
 function failDataLoad() {
 	if (inFetching) {
-		document.body.removeChild(scriptNode)
+		var newSNode = document.createElement('script')
+		document.body.replaceChild(newSNode, scriptNode)
+		scriptNode = newSNode
+
 		inFetching = 0
 		failedTimeout = null
 		setStatus('Data failed to load')
@@ -866,11 +869,32 @@ window.onload = function() {
 		case 'ESC':
 			setVis('help', 0)
 			break
+		case '0':
+			selectedSSI = 0
+			break
+		case '1':
+			selectedSSI = 1
+			break
 		case 'h':
 			var o = document.getElementById('help')
 			setPos(o, winw/5, winh/5)
 			setWidthLength(o, 3*winw/5, 3*winh/5)
 			setVis('help', 1)
+
+			o = document.getElementById('currentssi')
+			var s = '<form action="#">' +
+			    'The current SSI being shown is ' +
+				'<select onchange="selectedSSI = this.selectedIndex">'
+
+			for (var j = 0; j < dataURLs.length; j++)
+				s += '<option' +
+				     (selectedSSI == j ? ' selected="selected"' : '') + '>' +
+					dataURLs[j][0] + '</option>'
+
+			s +=	'</select>.' +
+			    '</form>'
+
+			o.innerHTML = s
 			break
 		case 'k':
 			__ = 1
