@@ -21,7 +21,6 @@
  * TODO
  * - job state transitions are broken
  * - legend
- * - job color allocator reuses colors
  */
 
 var ghistory, gjobs, gqueue
@@ -882,14 +881,9 @@ window.onload = function() {
 
 	document.onkeypress = function (e) {
 		var ch = String.fromCharCode(e.which)
-		if (e.keyCode == 27)
-			ch = 'ESC'
 		switch (ch) {
 		case ' ':
 			fetchData()
-			break
-		case 'ESC':
-			setVis('help', 0)
 			break
 //		case '0':
 //			chooseSSI(0)
@@ -899,6 +893,11 @@ window.onload = function() {
 //			break
 		case 'h':
 			var o = document.getElementById('help')
+			if (o.style.visibility == 'visible') {
+				setVis('help', 0)
+				break
+			}
+
 			setPos(o, winw/5, winh/5)
 			setWidthLength(o, 3*winw/5, 3*winh/5)
 			setVis('help', 1)
@@ -916,7 +915,7 @@ window.onload = function() {
 			s +=	'</select>.' +
 			    '</form>'
 
-			o.innerHTML = s
+			//o.innerHTML = s
 			break
 		case 'k':
 			__ = 1
