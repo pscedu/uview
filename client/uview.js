@@ -42,8 +42,8 @@ var maxDescLen
 var selectedSSI = 0
 
 var dataURLs = [
-	[ 'bl0', 'http://mugatu.psc.edu:24240/UView' ],
-	[ 'bl1', 'http://mugatu.psc.edu:24241/UView' ]
+	[ 'bl0', 'http://mugatu.psc.edu:24240/UView' ]
+//	[ 'bl1', 'http://mugatu.psc.edu:24241/UView' ]
 ]
 
 var excludeList = [
@@ -673,18 +673,27 @@ function massageJobs(jobs) {
 }
 
 function drawGridLines(gobj) {
+	if (gobj.gridLines) {
+		for (var i in gobj.gridLines)
+			gobj.gridLines[i].remove()
+	}
+	gobj.gridLines = []
+
 	var x = gobj.attr('x')+gridStrokeWidth/2
 	var y = gobj.attr('y')
 	var h = gobj.attr('height')
 	var w = gobj.attr('width')-gridStrokeWidth
 	var ty = y+h+h/16
+	var o
 	for (var j = 0; j < 16; j++) {
 		ty -= h/16
-		canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
-		canvas.text(x+15, ty-5, fmtSize(j*s_sysinfo['mem']/16)).attr({
+		o = canvas.path('M '+x+' '+ty+' L '+(x+w)+' '+ty).attr({stroke:'#333'})
+		gobj.gridLines.push(o)
+		o = canvas.text(x+15, ty-5, fmtSize(j*s_sysinfo['mem']/16)).attr({
 		    fill:'#999',
 		    'font-family':'Candara'
 		})
+		gobj.gridLines.push(o)
 	}
 }
 
@@ -708,7 +717,8 @@ function loadData() {
 	} else
 		setStatus('Drawing...')
 
-	if (s_sysinfo == null && data.result.sysinfo) {
+	if (data.result.sysinfo && (s_sysinfo == null ||
+	     s_sysinfo['hostname'] != data.result.sysinfo['hostname'])) {
 		s_sysinfo = data.result.sysinfo
 
 		drawGridLines(ghistory)
@@ -882,12 +892,12 @@ window.onload = function() {
 		case 'ESC':
 			setVis('help', 0)
 			break
-		case '0':
-			chooseSSI(0)
-			break
-		case '1':
-			chooseSSI(1)
-			break
+//		case '0':
+//			chooseSSI(0)
+//			break
+//		case '1':
+//			chooseSSI(1)
+//			break
 		case 'h':
 			var o = document.getElementById('help')
 			setPos(o, winw/5, winh/5)
