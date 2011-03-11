@@ -72,7 +72,7 @@
 				font-weight: bold;
 				font-size: 1.5em;
 			}
-			#popup {
+			#popup, #help {
 				position: absolute;
 				background-color: #333;
 				border: 2px solid #ccc;
@@ -85,14 +85,18 @@
 				-moz-border-radius: 1em;
 				-webkit-border-radius: 1em;
 				border-radius: 1em;
+				overflow: auto;
 			}
-			#popup h3 {
+			#help {
+				opacity: .95;
+			}
+			#popup h3, #help h3 {
 				margin-top: 0;
 				margin-bottom: 0;
 				border-bottom: 1px solid #ccc;
 				vertical-align: middle;
 			}
-			#popup h3 div {
+			#popup h3 div, #help h3 div {
 				float: left;
 				margin: .1em;
 				margin-left: .2em;
@@ -103,11 +107,27 @@
 				-webkit-box-shadow: 0 0 1px #ccc;
 				box-shadow: 0 0 1px #ccc;
 			}
+			#help h3 div {
+				border: 2px solid #b8b8b8;
+				background-color: #666;
+			}
+			#help em {
+				color: yellow;
+			}
 			.label {
 				color: #cc9;
 			}
 			#status {
 				position: absolute;
+			}
+			#help {
+				z-index: 15;
+			}
+			a {
+				color: violet;
+			}
+			a:visited {
+				color: #c765c7;
 			}
 		</style>
 	</head>
@@ -131,6 +151,24 @@
 
 		<div id='popup' onmouseover='window.clearTimeout(popupTimeout); popupTimeout = null'
 			onmouseout="popupTimeout = window.setTimeout('clearPopup()', 100)"></div>
+
+		<div id='help'>
+			<h3>
+				<div></div>
+				Help</h3>
+			<p>
+				This graphical monitor shows live jobs running on
+				<a href="http://www.psc.edu/machines/sgi/uv/blacklight.php">Blacklight</a>.
+			</p>
+			<p>
+				The following key bindings are recognized:
+			</p>
+			<ul>
+				<li><em>(space)</em> - fetch latest data</li>
+				<li><em>(escape)</em> - close this help window</li>
+				<li><em>h</em> - display this help window</li>
+			</ul>
+		</div>
 
 		<div id='status'></div>
 	</body>

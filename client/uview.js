@@ -21,6 +21,7 @@
  * TODO
  * - job state transitions are broken
  * - legend
+ * - job color allocator reuses colors
  */
 
 var ghistory, gjobs, gqueue
@@ -38,6 +39,12 @@ var gridStrokeWidth = 2
 var animTime = 100
 var inFetching = 0
 var maxDescLen
+var selectedSSI = 1
+
+var dataURLs = [
+	[ 'bl0', 'http://mugatu.psc.edu:24241/UView' ],
+	[ 'bl1', 'http://mugatu.psc.edu:24240/UView' ]
+]
 
 var excludeList = [
 	'ctime',
@@ -257,7 +264,7 @@ function jobHover(j) {
 	var o = document.getElementById('popup')
 	o.innerHTML = '<h3>' +
 	    '<div style="background-color: '+toHexColor(j.Color)+'; ' +
-	    'border: 2px solid '+toHexColor(j.StrokeColor)+'; overflow: scroll"></div>' +
+	    'border: 2px solid '+toHexColor(j.StrokeColor)+'"></div>' +
 	    j.Job_Id + '</h3>' +
 	    strAttrs(j, '&nbsp;&nbsp;', excludeList, fmtJobLabel).replace(/\n/g, '<br />')
 
@@ -308,6 +315,11 @@ function setVis(name, vis) {
 function setPos(o, x, y) {
 	o.style.left = Math.round(x) + 'px'
 	o.style.top = Math.round(y) + 'px'
+}
+
+function setWidthLength(o, w, h) {
+	o.style.width = Math.round(w) + 'px'
+	o.style.height = Math.round(h) + 'px'
 }
 
 function animObj(obj, attr, time, cb) {
@@ -411,8 +423,7 @@ function drawSetLabels(jobs) {
 		if (label.length > 16)
 			label = label.substring(0, 16).replace(/[.][a-zA-Z0-9]*$/, '')
 		j.gtextobj2.innerHTML = label
-		j.gtextobj2.style.fontSize = getJobLabelFontSize(label,
-			j.gobj.attr('width'), j.gobj.attr('height'), 9) + 'pt'
+		j.gtextobj2.style.fontSize = 10
 
 		var angle = 2 * Math.PI * 70 / 360
 
@@ -767,7 +778,7 @@ function fetchData() {
 
 	var newSNode = document.createElement('script')
 	newSNode.type = 'text/javascript'
-	newSNode.src = 'http://mugatu.psc.edu:24240/UView?' + Math.random()
+	newSNode.src = dataURLs[selectedSSI][1] + '?' + Math.random()
 	newSNode.onload = loadData
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
@@ -845,9 +856,21 @@ window.onload = function() {
 	}
 
 	document.onkeypress = function (e) {
-		switch (String.fromCharCode(e.which)) {
+		var ch = String.fromCharCode(e.which)
+		if (e.keyCode == 27)
+			ch = 'ESC'
+		switch (ch) {
 		case ' ':
 			fetchData()
+			break
+		case 'ESC':
+			setVis('help', 0)
+			break
+		case 'h':
+			var o = document.getElementById('help')
+			setPos(o, winw/5, winh/5)
+			setWidthLength(o, 3*winw/5, 3*winh/5)
+			setVis('help', 1)
 			break
 		case 'k':
 			__ = 1
