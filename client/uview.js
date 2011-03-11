@@ -830,6 +830,8 @@ function clearStatus(msg) {
 }
 
 function chooseSSI(i) {
+	if (selectedSSI == i)
+		return
 	failDataLoad()
 	selectedSSI = i
 	fetchData()
