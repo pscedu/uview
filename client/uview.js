@@ -750,13 +750,18 @@ function loadData() {
 
 function failDataLoad() {
 	if (inFetching) {
+		if (failedTimeout)
+			window.clearTimeout(failedTimeout)
+		failedTimeout = null
+
 		var newSNode = document.createElement('script')
 		document.body.replaceChild(newSNode, scriptNode)
 		scriptNode = newSNode
 
 		inFetching = 0
-		failedTimeout = null
+
 		setStatus('Data failed to load')
+
 		if (refetchTimeout)
 			window.clearTimeout(refetchTimeout)
 		refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
@@ -812,16 +817,22 @@ function drawGrid(name, x, y, w, h) {
 }
 
 function setStatus(msg) {
-	var o = document.getElementById('status')
+	var o = document.getElementById('statusline')
 	o.innerHTML = msg
+
+	o = document.getElementById('status')
 	o.style.top = winh - o.clientHeight + 'px'
 	o.style.left = winw/2 - o.clientWidth/2 + 'px'
-	o.style.visibility = 'visible'
 }
 
 function clearStatus(msg) {
-	var o = document.getElementById('status')
-	o.style.visibility = 'hidden'
+	setStatus('')
+}
+
+function chooseSSI(i) {
+	failDataLoad()
+	selectedSSI = i
+	fetchData()
 }
 
 window.onload = function() {
@@ -870,10 +881,10 @@ window.onload = function() {
 			setVis('help', 0)
 			break
 		case '0':
-			selectedSSI = 0
+			chooseSSI(0)
 			break
 		case '1':
-			selectedSSI = 1
+			chooseSSI(1)
 			break
 		case 'h':
 			var o = document.getElementById('help')
@@ -884,7 +895,7 @@ window.onload = function() {
 			o = document.getElementById('currentssi')
 			var s = '<form action="#">' +
 			    'The current SSI being shown is ' +
-				'<select onchange="selectedSSI = this.selectedIndex">'
+				'<select onchange="chooseSSI(this.selectedIndex)">'
 
 			for (var j = 0; j < dataURLs.length; j++)
 				s += '<option' +
