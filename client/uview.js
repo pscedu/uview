@@ -829,7 +829,7 @@ function setStatus(msg) {
 	o.innerHTML = msg
 
 	o = document.getElementById('status')
-	o.style.top = winh - o.clientHeight + 'px'
+	o.style.top = winh - o.clientHeight - 3 + 'px'
 	o.style.left = winw/2 - o.clientWidth/2 + 'px'
 }
 
