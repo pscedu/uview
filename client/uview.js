@@ -39,7 +39,7 @@ var animTime = 100
 var inFetching = 0
 var maxDescLen
 var selectedSSI = 0
-var maxTimeoutLength = 4
+var maxTimeoutLength = 8
 
 var dataURLs = [
 	[ 'bl0', 'http://mugatu.psc.edu:24240/UView' ],
@@ -713,44 +713,45 @@ function loadData() {
 		}
 		setStatus('Load failed')
 		inFetching = 0
-	} else
+	} else {
 		setStatus('Data load successful, drawing...')
 
-	if (data.result.sysinfo && (s_sysinfo == null ||
-	     s_sysinfo['hostname'] != data.result.sysinfo['hostname'])) {
-		s_sysinfo = data.result.sysinfo
+		if (data.result.sysinfo && (s_sysinfo == null ||
+		    s_sysinfo['hostname'] != data.result.sysinfo['hostname'])) {
+			s_sysinfo = data.result.sysinfo
 
-		drawGridLines(ghistory)
-		drawGridLines(gjobs)
-		drawGridLines(gqueue)
+			drawGridLines(ghistory)
+			drawGridLines(gjobs)
+			drawGridLines(gqueue)
 
-		document.getElementById('host').innerHTML = s_sysinfo['hostname']
+			document.getElementById('host').innerHTML = s_sysinfo['hostname']
+		}
+
+		massageJobs(data.result.history)
+		massageJobs(data.result.jobs)
+		massageJobs(data.result.queue)
+
+		// prune history
+		var tj = jobsPersist(s_history, data.result.history, clearJob)
+		deadJobs = tj
+
+		tj = jobsPersist(s_jobs, data.result.history)
+		tj = jobsPersist(tj, data.result.jobs, clearJob)
+		deadJobs.concat(tj)
+
+		tj = jobsPersist(s_queue, data.result.history)
+		tj = jobsPersist(tj, data.result.jobs)
+		tj = jobsPersist(tj, data.result.queue, clearJob)
+		deadJobs.concat(tj)
+
+		s_history = data.result.history
+		s_jobs = data.result.jobs
+		s_queue = data.result.queue
+
+		drawJobs('queue', gqueue, data.result.queue)
+		drawJobs('jobs', gjobs, data.result.jobs)
+		drawJobs('history', ghistory, data.result.history)
 	}
-
-	massageJobs(data.result.history)
-	massageJobs(data.result.jobs)
-	massageJobs(data.result.queue)
-
-	// prune history
-	var tj = jobsPersist(s_history, data.result.history, clearJob)
-	deadJobs = tj
-
-	tj = jobsPersist(s_jobs, data.result.history)
-	tj = jobsPersist(tj, data.result.jobs, clearJob)
-	deadJobs.concat(tj)
-
-	tj = jobsPersist(s_queue, data.result.history)
-	tj = jobsPersist(tj, data.result.jobs)
-	tj = jobsPersist(tj, data.result.queue, clearJob)
-	deadJobs.concat(tj)
-
-	s_history = data.result.history
-	s_jobs = data.result.jobs
-	s_queue = data.result.queue
-
-	drawJobs('queue', gqueue, data.result.queue)
-	drawJobs('jobs', gjobs, data.result.jobs)
-	drawJobs('history', ghistory, data.result.history)
 
 	if (refetchTimeout)
 		window.clearTimeout(refetchTimeout)
@@ -762,13 +763,12 @@ function elapsedLoadIntv(to) {
 		return
 
 	if (to) {
-		setStatus('Loading data (timeout ' + to + ' sec)...')
+		setStatus('Loading data from ' + dataURLs[selectedSSI][0] +
+		    ', timeout ' + to + ' sec...')
 
 		to--;
 		failedTimeout = window.setTimeout('elapsedLoadIntv(' + to + ')', 1 * 1000)
 	} else {
-		setStatus('Data failed to load, will retry in 1 minute')
-
 		if (failedTimeout)
 			window.clearTimeout(failedTimeout)
 		failedTimeout = null
@@ -781,7 +781,9 @@ function elapsedLoadIntv(to) {
 
 		if (refetchTimeout)
 			window.clearTimeout(refetchTimeout)
-		refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
+		refetchTimeout = window.setTimeout('fetchData()', 5 * 1000)
+
+		setStatus('Data failed to load, will retry in 1 minute')
 	}
 }
 
@@ -917,30 +919,11 @@ window.onload = function() {
 				     (selectedSSI == j ? ' selected="selected"' : '') + '>' +
 					dataURLs[j][0] + '</option>'
 
-			s +=	'</select>.' +
+			s +=	'</select>' +
 			    '</form>'
 
 			o.innerHTML = s
 			break
-		case 'k':
-			__ = 1
-			if (data && data.result &&
-			    data.result.jobs.length) {
-				var d = []
-				for (var _j = 0; _j < data.result.jobs.length; _j++)
-					d[_j] = data.result.jobs[_j]
-				data.result.jobs = d
-
-				d = []
-				for (var _j = 0; _j < data.result.history.length; _j++)
-					d[_j] = data.result.history[_j]
-				data.result.history = d
-
-				data.result.history.push(data.result.jobs.pop())
-				inFetching = 1
-				loadData()
-			}
-			break;
 		}
 	}
 
