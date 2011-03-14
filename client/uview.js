@@ -39,10 +39,11 @@ var animTime = 100
 var inFetching = 0
 var maxDescLen
 var selectedSSI = 0
+var maxTimeoutLength = 4
 
 var dataURLs = [
-	[ 'bl0', 'http://mugatu.psc.edu:24240/UView' ]
-//	[ 'bl1', 'http://mugatu.psc.edu:24241/UView' ]
+	[ 'bl0', 'http://mugatu.psc.edu:24240/UView' ],
+	[ 'bl1', 'http://mugatu.psc.edu:24241/UView' ]
 ]
 
 var excludeList = [
@@ -655,7 +656,7 @@ function massageJobs(jobs) {
 			else if ('ncpus' in j.Resource_List)
 				j.MemAlloc = s_sysinfo['mempercpu'] * j.Resource_List.ncpus
 			var cpn = j['Resource_List']['walltime'].split(/:/)
-			j.WallTime = parseInt(cpn[0],10) + parseInt(cpn[1],10)/60
+			j.WallTime = parseInt(cpn[0], 10) + parseInt(cpn[1], 10)/60
 			if (j.WallTime == 0)
 				j.WallTime = 1
 		} else
@@ -713,7 +714,7 @@ function loadData() {
 		setStatus('Load failed')
 		inFetching = 0
 	} else
-		setStatus('Drawing...')
+		setStatus('Data load successful, drawing...')
 
 	if (data.result.sysinfo && (s_sysinfo == null ||
 	     s_sysinfo['hostname'] != data.result.sysinfo['hostname'])) {
@@ -756,8 +757,18 @@ function loadData() {
 	refetchTimeout = window.setTimeout('fetchData()', 60 * 1000)
 }
 
-function failDataLoad() {
-	if (inFetching) {
+function elapsedLoadIntv(to) {
+	if (!inFetching)
+		return
+
+	if (to) {
+		setStatus('Loading data (timeout ' + to + ' sec)...')
+
+		to--;
+		failedTimeout = window.setTimeout('elapsedLoadIntv(' + to + ')', 1 * 1000)
+	} else {
+		setStatus('Data failed to load, will retry in 1 minute')
+
 		if (failedTimeout)
 			window.clearTimeout(failedTimeout)
 		failedTimeout = null
@@ -767,8 +778,6 @@ function failDataLoad() {
 		scriptNode = newSNode
 
 		inFetching = 0
-
-		setStatus('Data failed to load')
 
 		if (refetchTimeout)
 			window.clearTimeout(refetchTimeout)
@@ -787,8 +796,6 @@ function fetchData() {
 
 	inFetching = 1
 
-	setStatus('Loading data...')
-
 	old_data = data
 	data = null
 
@@ -799,9 +806,7 @@ function fetchData() {
 	document.body.replaceChild(newSNode, scriptNode)
 	scriptNode = newSNode
 
-	if (failedTimeout)
-		window.clearTimeout(failedTimeout)
-	failedTimeout = window.setTimeout('failDataLoad()', 10 * 1000)
+	elapsedLoadIntv(maxTimeoutLength)
 }
 
 function drawGrid(name, x, y, w, h) {
@@ -840,7 +845,7 @@ function clearStatus(msg) {
 function chooseSSI(i) {
 	if (selectedSSI == i)
 		return
-	failDataLoad()
+	elapsedLoadIntv(0)
 	selectedSSI = i
 	fetchData()
 }
@@ -885,12 +890,12 @@ window.onload = function() {
 		case ' ':
 			fetchData()
 			break
-//		case '0':
-//			chooseSSI(0)
-//			break
-//		case '1':
-//			chooseSSI(1)
-//			break
+		case '0':
+			chooseSSI(0)
+			break
+		case '1':
+			chooseSSI(1)
+			break
 		case 'h':
 			var o = document.getElementById('help')
 			if (o.style.visibility == 'visible') {
@@ -904,7 +909,7 @@ window.onload = function() {
 
 			o = document.getElementById('currentssi')
 			var s = '<form action="#">' +
-			    'The current SSI being shown is ' +
+			    'SSI to load data from: ' +
 				'<select onchange="chooseSSI(this.selectedIndex)">'
 
 			for (var j = 0; j < dataURLs.length; j++)
@@ -915,7 +920,7 @@ window.onload = function() {
 			s +=	'</select>.' +
 			    '</form>'
 
-			//o.innerHTML = s
+			o.innerHTML = s
 			break
 		case 'k':
 			__ = 1
