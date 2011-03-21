@@ -902,8 +902,11 @@ window.onload = function() {
 			var o = document.getElementById('help')
 			if (o.style.visibility == 'visible') {
 				setVis('help', 0)
+				setVis('helpback', 0)
 				break
 			}
+
+			setVis('helpback', 1)
 
 			setPos(o, winw/5, winh/5)
 			setWidthLength(o, 3*winw/5, 3*winh/5)
