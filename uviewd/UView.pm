@@ -1,7 +1,7 @@
 # $Id$
 # %PSC_START_COPYRIGHT%
 # -----------------------------------------------------------------------------
-# Copyright (c) 2010, Pittsburgh Supercomputing Center (PSC).
+# Copyright (c) 2010-2011, Pittsburgh Supercomputing Center (PSC).
 #
 # Permission to use, copy, and modify this software and its documentation
 # without fee for personal use or non-commercial use within your organization
@@ -17,19 +17,23 @@
 
 package UView;
 
-use XML::Simple;
+use DBI;
 use Data::Dumper;
-use Storable qw(freeze thaw);
 use JSON;
+use Storable qw(freeze thaw);
+use Sys::Hostname;
+use XML::Simple;
 use threads;
 use threads::shared;
-use Sys::Hostname;
 
-use constant HISTORY_NJOBS => 8;
+use constant HISTORY_NJOBS	=> 8;
+use constant DB_FN		=> "/usr/local/torque/uv1000.db";
 
 our $s_history : shared;
 our $s_jobs : shared;
 our $s_queue : shared;
+our $s_nodes : shared;
+
 our $s_hostname = hostname;
 
 sub uview {
@@ -39,14 +43,16 @@ sub uview {
 	lock($s_history);
 	lock($s_jobs);
 	lock($s_queue);
+	lock($s_nodes);
 
 	return {
 		sysinfo	=> {
 			hostname	=> $s_hostname,
 			# the following are in units of GB
-			mem		=> 16*1024,
+			mem		=> 16 * 1024,
 			mempercpu	=> 8,
 			gb_per_memnode	=> 64,
+			nodes		=> thaw($s_nodes),
 		},
 		history	=> thaw($s_history),
 		jobs	=> thaw($s_jobs),
@@ -77,6 +83,8 @@ sub hasjob {
 
 threads->create(sub {
 	my $str = "";
+	my $dbh;
+
 	for (;;) {
 		my $nstr = `qstat -fx`;
 		if ($nstr ne $str) {
@@ -122,13 +130,43 @@ threads->create(sub {
 
 			$str = $nstr;
 
-			lock($s_history);
-			lock($s_jobs);
-			lock($s_queue);
+			{
+				lock($s_history);
+				lock($s_jobs);
+				lock($s_queue);
 
-			$s_history = freeze \@history;
-			$s_jobs = freeze \@jobs;
-			$s_queue = freeze \@queue;
+				$s_history = freeze \@history;
+				$s_jobs = freeze \@jobs;
+				$s_queue = freeze \@queue;
+			}
+
+			unless ($dbh) {
+				$dbh = DBI->connect("dbi:SQLite:dbname=" .
+				    DB_FN) or warn $DBI::errstr;
+			}
+
+			if ($dbh) {
+				# memory_kb
+				my $r = $dbh->selectall_arrayref(<<SQL);
+					SELECT
+						partition_num,
+						blade_num,
+						rack,
+						iru,
+						blade,
+						configured,
+						comment
+					FROM
+						blades
+SQL
+				if ($r) {
+					lock($s_nodes);
+					$s_nodes = freeze $r;
+				} else {
+					warn $dbh->errstr;
+					$dbh = undef;
+				}
+			}
 		}
 		sleep(30);
 	}
