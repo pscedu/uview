@@ -167,7 +167,15 @@ SQL
 					foreach my $rr (@$r) {
 						my %r;
 						@r{@fields} = @$rr;
+						$r{memnid} = 2 * $r{blade};
 						$rr = \%r;
+					}
+
+					my $n = @$r;
+					for (my $j = 0; $j < $n; $j++) {
+						my %d = %{ $r->[$j] };
+						$d{memnid}++;
+						push @$r, \%d;
 					}
 
 					lock($s_nodes);
