@@ -147,25 +147,36 @@ threads->create(sub {
 
 			if ($dbh) {
 				# memory_kb
+				my @fields = qw(
+					partition_num
+					blade_num
+					rack
+					iru
+					blade
+					configured
+					comment
+				);
+
 				my $r = $dbh->selectall_arrayref(<<SQL);
 					SELECT
-						partition_num,
-						blade_num,
-						rack,
-						iru,
-						blade,
-						configured,
-						comment
+						@{[join ',', @fields]}
 					FROM
 						blades
 SQL
 				if ($r) {
+					foreach my $rr (@$r) {
+						my %r;
+						@r{@fields} = @$rr;
+						$rr = \%r;
+					}
+
 					lock($s_nodes);
 					$s_nodes = freeze $r;
 				} else {
 					warn $dbh->errstr;
-					$dbh = undef;
 				}
+				$dbh->disconnect;
+				$dbh = undef;
 			}
 		}
 		sleep(30);
