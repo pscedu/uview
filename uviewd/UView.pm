@@ -168,7 +168,7 @@ SQL
 						my %r;
 						@r{@fields} = @$rr;
 						$r{memnid} = 2 * $r{blade_num} +
-						    ($r{paritition_num} - 1) * 255 ;
+						    ($r{partition_num} - 1) * 256;
 						$r{node} = 0;
 						$rr = \%r;
 					}
