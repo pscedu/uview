@@ -167,7 +167,9 @@ SQL
 					foreach my $rr (@$r) {
 						my %r;
 						@r{@fields} = @$rr;
-						$r{memnid} = 2 * $r{blade};
+						$r{memnid} = 2 * $r{blade_num} +
+						    ($r{paritition_num} - 1) * 255 ;
+						$r{node} = 0;
 						$rr = \%r;
 					}
 
@@ -175,6 +177,7 @@ SQL
 					for (my $j = 0; $j < $n; $j++) {
 						my %d = %{ $r->[$j] };
 						$d{memnid}++;
+						$d{node} = 1;
 						push @$r, \%d;
 					}
 
