@@ -68,7 +68,6 @@ var excludeList = [
 	'StrokeColor',
 	'User_List',
 	'WallTime',
-	'exec_host',
 	'gobj',
 	'grid',
 	'gtextobj',

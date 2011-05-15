@@ -1,1 +1,8 @@
+# $Id$
+
 DirectoryIndex uview.html
+
+<Files *>
+	Order allow,deny
+	Allow from psc.edu
+</Files>
